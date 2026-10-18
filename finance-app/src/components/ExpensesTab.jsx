@@ -169,7 +169,7 @@ export default function ExpensesTab({ expenses, onAdd, onDelete, onUpdate, curre
             </p>
           </div>
         ) : (
-          <ul className="stagger space-y-3">
+          <ul className="list-scroll stagger space-y-3">
             {sorted.map((item) => {
               const meta = expenseMeta(item.category)
               const Icon = meta.icon

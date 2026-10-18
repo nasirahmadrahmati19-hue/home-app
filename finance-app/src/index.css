@@ -457,3 +457,14 @@ select,
 textarea {
   font-size: 16px;
 }
+
+/* ---------- scrollable entry lists (scroll after ~10 items) ---------- */
+.list-scroll {
+  max-height: 78vh; /* roughly the height of 10 entry cards */
+  overflow-y: auto;
+  overscroll-behavior: contain; /* don't jitter/chain the page while scrolling the list */
+  -webkit-overflow-scrolling: touch;
+  scrollbar-gutter: stable;
+  padding-inline-start: 4px;
+  padding-inline-end: 8px;
+}

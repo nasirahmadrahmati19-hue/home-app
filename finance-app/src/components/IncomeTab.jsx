@@ -163,7 +163,7 @@ export default function IncomeTab({ incomes, onAdd, onDelete, onUpdate, currency
             </p>
           </div>
         ) : (
-          <ul className="stagger space-y-3">
+          <ul className="list-scroll stagger space-y-3">
             {sorted.map((item) => {
               const meta = incomeMeta(item.source)
               const Icon = meta.icon
