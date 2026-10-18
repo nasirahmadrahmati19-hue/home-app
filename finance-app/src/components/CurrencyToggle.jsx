@@ -1,0 +1,34 @@
+import { Coins } from 'lucide-react'
+import { CURRENCY_OPTIONS, currencyLabel } from '../utils/currency'
+
+/**
+ * Segmented control to switch between Afghani (؋) and US Dollar ($).
+ * Stored globally in localStorage via utils/currency.js.
+ */
+export default function CurrencyToggle({ value, onChange }) {
+  return (
+    <div className="glass-soft flex items-center gap-1 p-1" role="group" aria-label="واحد پول">
+      <Coins size={15} className="mx-1.5 shrink-0 text-amber-300" />
+      {CURRENCY_OPTIONS.map((opt) => {
+        const isActive = value === opt.id
+        return (
+          <button
+            key={opt.id}
+            type="button"
+            onClick={() => onChange(opt.id)}
+            aria-pressed={isActive}
+            title={opt.title}
+            className={
+              'rounded-xl px-3 py-1.5 text-xs font-extrabold transition-all duration-300 ' +
+              (isActive
+                ? 'bg-gradient-to-l from-amber-400 to-orange-400 text-slate-900 shadow-md shadow-amber-500/30 ring-1 ring-white/25'
+                : 'text-slate-400 hover:text-white')
+            }
+          >
+            {opt.short} {currencyLabel(opt.id)}
+          </button>
+        )
+      })}
+    </div>
+  )
+}

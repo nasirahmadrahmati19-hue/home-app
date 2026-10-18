@@ -1,28 +1,36 @@
 import { TrendingUp, TrendingDown, BarChart3 } from 'lucide-react'
 
 const tabs = [
-  { id: 'income', label: 'درآمد', icon: TrendingUp, active: 'from-emerald-400 to-teal-500 shadow-emerald-500/40' },
-  { id: 'expenses', label: 'مصارف', icon: TrendingDown, active: 'from-rose-400 to-orange-400 shadow-rose-500/40' },
-  { id: 'report', label: 'گزارش مالی ماهانه', icon: BarChart3, active: 'from-indigo-400 to-violet-500 shadow-indigo-500/40' },
+  { id: 'income', label: 'درآمد', icon: TrendingUp },
+  { id: 'expenses', label: 'مصارف', icon: TrendingDown },
+  { id: 'report', label: 'گزارش مالی ماهانه', icon: BarChart3 },
 ]
+
+// gradient per active tab (solid gradients work in both themes)
+const GRADIENTS = {
+  income: 'from-emerald-500 to-teal-500 shadow-emerald-500/40',
+  expenses: 'from-rose-500 to-orange-400 shadow-rose-500/40',
+  report: 'from-indigo-500 to-violet-500 shadow-indigo-500/40',
+}
 
 export default function Tabs({ active, onChange }) {
   return (
     <div className="glass p-2">
-      <div className="grid grid-cols-3 gap-2">
-        {tabs.map(({ id, label, icon: Icon, active: grad }) => {
+      <div className="grid grid-cols-3 gap-2" role="tablist">
+        {tabs.map(({ id, label, icon: Icon }) => {
           const isActive = active === id
           return (
             <button
               key={id}
+              role="tab"
+              aria-selected={isActive}
               onClick={() => onChange(id)}
               className={
                 'group relative flex items-center justify-center gap-2 overflow-hidden rounded-2xl px-3 py-3.5 text-sm font-extrabold transition-all duration-300 ' +
                 (isActive
-                  ? `bg-gradient-to-l ${grad} text-white shadow-lg ring-1 ring-white/20`
-                  : 'text-slate-400 hover:bg-white/[0.06] hover:text-white')
+                  ? `bg-gradient-to-l ${GRADIENTS[id]} text-white shadow-lg ring-1 ring-white/20`
+                  : 't-muted hoverable hover:t-strong')
               }
-              aria-pressed={isActive}
             >
               {/* top sheen on active tab */}
               {isActive && (

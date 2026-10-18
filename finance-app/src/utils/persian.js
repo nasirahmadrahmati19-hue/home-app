@@ -24,6 +24,12 @@ export function formatMoney(n) {
   return toFa(Math.round(n).toLocaleString('en-US').replace(/,/g, '٬'))
 }
 
+// Amount + currency symbol, e.g. "۱۲۵٬۰۰۰ ؋" (Afghani) or "۸۰ $" (USD)
+export function formatMoneyWithCurrency(n, currency) {
+  const label = currency === 'usd' ? '$' : '؋' // افغانی / دالر
+  return `${formatMoney(n)} ${label}`
+}
+
 // ---------- Jalali conversion (jalaali-js algorithm, MIT License) ----------
 
 function div(a, b) { return ~~(a / b) }

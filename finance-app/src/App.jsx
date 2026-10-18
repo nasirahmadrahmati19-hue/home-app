@@ -4,6 +4,8 @@ import Tabs from './components/Tabs'
 import IncomeTab from './components/IncomeTab'
 import ExpensesTab from './components/ExpensesTab'
 import ReportTab from './components/ReportTab'
+import ThemeToggle from './components/ThemeToggle'
+import CurrencyToggle from './components/CurrencyToggle'
 import {
   loadIncomes,
   saveIncomes,
@@ -12,11 +14,15 @@ import {
   uid,
 } from './utils/storage'
 import { todayJalali, jalaliMonthName, toFa } from './utils/persian'
+import { useTheme } from './utils/theme'
+import { useCurrency } from './utils/currency'
 
 export default function App() {
   const [active, setActive] = useState('income')
   const [incomes, setIncomes] = useState(loadIncomes)
   const [expenses, setExpenses] = useState(loadExpenses)
+  const [theme, toggleTheme] = useTheme()
+  const [currency, setCurrency] = useCurrency()
 
   // Persist to localStorage on every change
   useEffect(() => saveIncomes(incomes), [incomes])
@@ -53,20 +59,25 @@ export default function App() {
                   <h1 className="text-gradient text-2xl font-black tracking-tight sm:text-3xl">
                     مدیریت مالی شخصی
                   </h1>
-                  <Sparkles size={18} className="text-amber-300/90" />
+                  <Sparkles size={18} className="acc-amber" />
                 </div>
-                <p className="mt-1 text-[13px] font-bold text-slate-400 sm:text-sm">
-                  درآمدها، مصارف و گزارش ماهانه — همه در یک جای زیبا
+                <p className="t-muted mt-1 text-[13px] font-bold sm:text-sm">
+                  درآمدها، مصارف و گزارش ماهانه — همه در یک جای زیبا 🇦🇫
                 </p>
               </div>
             </div>
 
-            <div className="glass-soft flex items-center gap-2 px-4 py-2.5 text-sm font-bold text-slate-200">
-              <span className="relative flex h-2.5 w-2.5">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-70" />
-                <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-400" />
-              </span>
-              امروز: {todayLabel}
+            {/* controls: currency + theme + date */}
+            <div className="flex flex-wrap items-center gap-3">
+              <CurrencyToggle value={currency} onChange={setCurrency} />
+              <ThemeToggle theme={theme} onToggle={toggleTheme} />
+              <div className="glass-soft flex items-center gap-2 px-4 py-2.5 text-sm font-bold t-body">
+                <span className="relative flex h-2.5 w-2.5">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-70" />
+                  <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-400" />
+                </span>
+                امروز: {todayLabel}
+              </div>
             </div>
           </div>
         </div>
@@ -80,17 +91,19 @@ export default function App() {
 
         <div key={active} className="animate-fade-up">
           {active === 'income' && (
-            <IncomeTab incomes={incomes} onAdd={addIncome} onDelete={deleteIncome} />
+            <IncomeTab incomes={incomes} onAdd={addIncome} onDelete={deleteIncome} currency={currency} />
           )}
           {active === 'expenses' && (
-            <ExpensesTab expenses={expenses} onAdd={addExpense} onDelete={deleteExpense} />
+            <ExpensesTab expenses={expenses} onAdd={addExpense} onDelete={deleteExpense} currency={currency} />
           )}
-          {active === 'report' && <ReportTab incomes={incomes} expenses={expenses} />}
+          {active === 'report' && (
+            <ReportTab incomes={incomes} expenses={expenses} currency={currency} />
+          )}
         </div>
       </main>
 
       {/* ---------- Footer ---------- */}
-      <footer className="mx-auto mt-14 max-w-4xl px-4 text-center text-xs font-bold text-slate-600">
+      <footer className="t-faint mx-auto mt-14 max-w-4xl px-4 text-center text-xs font-bold">
         ساخته‌شده با ❤️ برای مدیریت هوشمند پول — داده‌ها فقط روی دستگاه شما ذخیره می‌شوند
       </footer>
     </div>
