@@ -24,9 +24,9 @@ export function formatMoney(n) {
   return toFa(Math.round(n).toLocaleString('en-US').replace(/,/g, '٬'))
 }
 
-// Amount + currency symbol, e.g. "۱۲۵٬۰۰۰ ؋" (Afghani) or "۸۰ $" (USD)
+// Amount + full currency word, e.g. "۱۲۵٬۰۰۰ افغانی" or "۸۰ دالر"
 export function formatMoneyWithCurrency(n, currency) {
-  const label = currency === 'usd' ? '$' : '؋' // افغانی / دالر
+  const label = currency === 'usd' ? 'دالر' : 'افغانی'
   return `${formatMoney(n)} ${label}`
 }
 

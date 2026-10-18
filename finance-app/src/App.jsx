@@ -37,6 +37,11 @@ export default function App() {
   const deleteIncome = (id) => setIncomes((prev) => prev.filter((i) => i.id !== id))
   const deleteExpense = (id) => setExpenses((prev) => prev.filter((e) => e.id !== id))
 
+  const updateIncome = (patch) =>
+    setIncomes((prev) => prev.map((i) => (i.id === patch.id ? { ...i, ...patch } : i)))
+  const updateExpense = (patch) =>
+    setExpenses((prev) => prev.map((e) => (e.id === patch.id ? { ...e, ...patch } : e)))
+
   const { jy, jm, jd } = todayJalali()
   const todayLabel = `${toFa(jd)} ${jalaliMonthName(jm)} ${toFa(jy)}`
 
@@ -91,10 +96,10 @@ export default function App() {
 
         <div key={active} className="animate-fade-up">
           {active === 'income' && (
-            <IncomeTab incomes={incomes} onAdd={addIncome} onDelete={deleteIncome} currency={currency} />
+            <IncomeTab incomes={incomes} onAdd={addIncome} onDelete={deleteIncome} onUpdate={updateIncome} currency={currency} />
           )}
           {active === 'expenses' && (
-            <ExpensesTab expenses={expenses} onAdd={addExpense} onDelete={deleteExpense} currency={currency} />
+            <ExpensesTab expenses={expenses} onAdd={addExpense} onDelete={deleteExpense} onUpdate={updateExpense} currency={currency} />
           )}
           {active === 'report' && (
             <ReportTab incomes={incomes} expenses={expenses} currency={currency} />

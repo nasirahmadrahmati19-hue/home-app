@@ -2,7 +2,7 @@ import { Coins } from 'lucide-react'
 import { CURRENCY_OPTIONS, currencyLabel } from '../utils/currency'
 
 /**
- * Segmented control to switch between Afghani (؋) and US Dollar ($).
+ * Segmented control to switch between Afghani (افغانی) and US Dollar (دالر).
  * Stored globally in localStorage via utils/currency.js.
  */
 export default function CurrencyToggle({ value, onChange }) {
@@ -25,7 +25,7 @@ export default function CurrencyToggle({ value, onChange }) {
                 : 'text-slate-400 hover:text-white')
             }
           >
-            {opt.short} {currencyLabel(opt.id)}
+            {currencyLabel(opt.id)}
           </button>
         )
       })}

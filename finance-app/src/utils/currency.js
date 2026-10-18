@@ -4,8 +4,9 @@ import { useEffect, useState } from 'react'
 const CURRENCY_KEY = 'finance_app_currency'
 
 export const CURRENCIES = {
-  afn: { id: 'afn', label: 'افغانی', symbol: '؋', short: '؋ AFN' },
-  usd: { id: 'usd', label: 'دالر', symbol: '$', short: '$ USD' },
+  // Full word «افغانی» is used as the display unit (instead of only the ؋ sign)
+  afn: { id: 'afn', label: 'افغانی', symbol: 'افغانی', short: 'افغانی' },
+  usd: { id: 'usd', label: 'دالر', symbol: '$', short: 'دالر $' },
 }
 
 export const CURRENCY_OPTIONS = [CURRENCIES.afn, CURRENCIES.usd]

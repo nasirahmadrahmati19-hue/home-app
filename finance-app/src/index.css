@@ -238,6 +238,17 @@ body::after {
   color: #be123c;
 }
 
+/* edit button */
+.btn-edit { color: var(--text-faint); }
+.btn-edit:hover {
+  background: rgba(99, 102, 241, 0.14);
+  color: #a5b4fc;
+}
+.theme-light .btn-edit:hover {
+  background: rgba(79, 70, 229, 0.08);
+  color: #4f46e5;
+}
+
 /* ---------- Form controls ---------- */
 .field-label {
   @apply block text-[13px] font-bold;
@@ -298,6 +309,24 @@ input[type='date'].field-input::-webkit-calendar-picker-indicator {
 .animate-fade-up {
   animation: fade-up 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
+
+/* ---------- Bottom-sheet modal animations (compositor-only) ---------- */
+@keyframes backdrop-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes sheet-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 48px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+.animate-backdrop-in { animation: backdrop-in 0.25s ease both; }
+.animate-sheet-in { animation: sheet-in 0.35s cubic-bezier(0.22, 1, 0.36, 1) both; }
 
 .stagger > * {
   animation: fade-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
@@ -384,4 +413,49 @@ input[type='date'].field-input::-webkit-calendar-picker-indicator {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* ---------- Mobile-first polish ---------- */
+/* larger tap targets on touch devices */
+@media (pointer: coarse) {
+  .field-input,
+  select.field-input,
+  button[role='tab'] {
+    min-height: 46px;
+  }
+  .btn-delete,
+  .btn-edit {
+    min-width: 42px;
+    min-height: 42px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  /* no hover lift on touch (avoids sticky-hover artifacts) */
+  .card-lift:hover {
+    transform: translateZ(0);
+    box-shadow: 0 10px 40px -12px var(--glass-shadow);
+  }
+}
+
+/* safe-area insets for notched phones */
+@supports (padding: env(safe-area-inset-bottom)) {
+  body {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+  .animate-sheet-in > :last-child,
+  form {
+    margin-bottom: 0;
+  }
+  #root {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* prevent iOS input zoom: fields are >=16px already; keep it that way */
+input,
+select,
+textarea {
+  font-size: 16px;
 }

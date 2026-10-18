@@ -10,7 +10,7 @@ import {
   Coins,
 } from 'lucide-react'
 import {
-  formatMoney,
+
   formatMoneyWithCurrency,
   jalaliMonthKey,
   jalaliMonthKeyLabel,
@@ -53,22 +53,18 @@ export default function ReportTab({ incomes, expenses, currency }) {
 
   return (
     <div className="space-y-6">
-      {/* ---------- Month filter ---------- */}
-      <div className="glass flex flex-col gap-4 p-6 sm:flex-row sm:items-center sm:justify-between sm:p-7">
-        <div className="flex items-center gap-3">
-          <span className="chip-indigo flex h-11 w-11 items-center justify-center rounded-2xl">
-            <CalendarRange size={21} />
-          </span>
-          <h2 className="t-strong text-lg font-black">گزارش مالی</h2>
+    <div className="glass p-5 sm:p-7">
+        <div className="mb-4 flex items-center justify-between">
+          <h3 className="t-strong text-base font-black">گزارش مالی</h3>
         </div>
-
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-          <label className="t-muted flex items-center gap-3 text-sm font-bold">
+      {/* ---------- Month filter ---------- */}
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
+          <label className="t-muted flex flex-wrap items-center gap-3 text-sm font-bold">
             فیلتر بر اساس ماه:
             <select
               value={selected}
               onChange={(e) => setSelected(e.target.value)}
-              className="field-input !w-auto cursor-pointer !py-2.5"
+              className="field-input w-full cursor-pointer !py-2.5 sm:!w-auto"
             >
               <option value={currentKey}>همه ماه‌ها (کل)</option>
               {months.map((m) => (
@@ -78,11 +74,11 @@ export default function ReportTab({ incomes, expenses, currency }) {
               ))}
             </select>
           </label>
-        </div>
-        <p className="t-faint text-xs font-bold text-slate-500 sm:hidden">
-          دامنه گزارش: <span className="acc-indigo">{scopeLabel}</span>
-        </p>
+          <p className="t-faint text-xs font-bold">
+            دامنه گزارش: <span className="acc-indigo">{scopeLabel}</span>
+          </p>
       </div>
+    </div>
 
       {/* ---------- Summary cards ---------- */}
       <div className="stagger grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
@@ -119,10 +115,10 @@ export default function ReportTab({ incomes, expenses, currency }) {
             <div>
               <p className="text-sm font-extrabold text-white/75">مانده خالص (سود / زیان)</p>
               <p className="shimmer-text mt-3 text-4xl font-black tracking-tight">
-                {stats.balance >= 0 ? '+' : '−'}{formatMoney(Math.abs(stats.balance))}
+                {stats.balance >= 0 ? '+' : '−'}{formatMoneyWithCurrency(Math.abs(stats.balance), currency)}
               </p>
               <p className="mt-2 text-xs font-bold text-white/70">
-                {currency === 'usd' ? 'دالر ($)' : 'افغانی (؋)'}
+                {currency === 'usd' ? 'دالر' : 'افغانی'}
               </p>
             </div>
             <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/15 text-white ring-1 ring-white/25">
