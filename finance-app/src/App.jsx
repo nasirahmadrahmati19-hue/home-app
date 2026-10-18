@@ -49,10 +49,8 @@ export default function App() {
     <div dir="rtl" className="min-h-screen pb-16">
       {/* ---------- Header ---------- */}
       <header className="relative mx-auto max-w-4xl px-4 pt-10 sm:pt-14">
-        <div className="glass animate-fade-up relative overflow-hidden px-6 py-7 sm:px-9 sm:py-8">
+        <div className="card-raised animate-fade-up relative overflow-hidden px-6 py-7 sm:px-9 sm:py-8">
           {/* decorative orbs */}
-          <div className="pointer-events-none absolute -left-10 -top-16 h-44 w-44 rounded-full bg-emerald-500/20 blur-3xl" />
-          <div className="pointer-events-none absolute -bottom-10 -right-12 h-48 w-48 rounded-full bg-violet-500/25 blur-3xl" />
 
           <div className="flex flex-col items-start justify-between gap-5 sm:flex-row sm:items-center">
             <div className="flex items-center gap-4">
@@ -76,7 +74,7 @@ export default function App() {
             <div className="flex flex-wrap items-center gap-3">
               <CurrencyToggle value={currency} onChange={setCurrency} />
               <ThemeToggle theme={theme} onToggle={toggleTheme} />
-              <div className="glass-soft flex items-center gap-2 px-4 py-2.5 text-sm font-bold t-body">
+              <div className="inset-panel flex items-center gap-2 px-4 py-2.5 text-sm font-bold t-body">
                 <span className="relative flex h-2.5 w-2.5">
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-70" />
                   <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-400" />

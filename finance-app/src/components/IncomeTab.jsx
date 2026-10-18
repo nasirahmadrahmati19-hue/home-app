@@ -59,8 +59,7 @@ export default function IncomeTab({ incomes, onAdd, onDelete, onUpdate, currency
   return (
     <div className="space-y-6">
       {/* ---------- Form ---------- */}
-      <form onSubmit={submit} className="glass relative overflow-hidden p-6 sm:p-7">
-        <div className="pointer-events-none absolute -left-16 -top-16 h-40 w-40 rounded-full bg-emerald-500/15 blur-3xl" />
+      <form onSubmit={submit} className="card relative overflow-hidden p-6 sm:p-7">
 
         <div className="mb-5 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -69,7 +68,7 @@ export default function IncomeTab({ incomes, onAdd, onDelete, onUpdate, currency
             </span>
             <h2 className="t-strong text-lg font-black">ثبت درآمد جدید</h2>
           </div>
-          <span className="glass-soft hidden px-3.5 py-1.5 text-xs font-bold acc-emerald sm:block">
+          <span className="inset-panel hidden px-3.5 py-1.5 text-xs font-bold acc-emerald sm:block">
             مجموع: {formatMoneyWithCurrency(total, currency)}
           </span>
         </div>
@@ -130,7 +129,7 @@ export default function IncomeTab({ incomes, onAdd, onDelete, onUpdate, currency
       </form>
 
       {/* ---------- List ---------- */}
-      <div className="glass p-5 sm:p-7">
+      <div className="card p-5 sm:p-7">
         <div className="mb-4 flex items-center justify-between">
           <h3 className="t-strong text-base font-black">درآمدهای ثبت‌شده</h3>
           <span className="badge-emerald rounded-full px-3.5 py-1 text-xs font-bold">
@@ -261,7 +260,7 @@ export default function IncomeTab({ incomes, onAdd, onDelete, onUpdate, currency
               <button
                 type="button"
                 onClick={() => setEditing(null)}
-                className="glass-soft t-muted flex items-center justify-center gap-2 rounded-2xl px-5 py-3 font-extrabold transition-all duration-300 hover:text-white active:scale-[0.98]"
+                className="inset-panel t-muted flex items-center justify-center gap-2 rounded-2xl px-5 py-3 font-extrabold transition-all duration-300 hover:text-white active:scale-[0.98]"
               >
                 <X size={18} />
                 انصراف

@@ -53,7 +53,7 @@ export default function ReportTab({ incomes, expenses, currency }) {
 
   return (
     <div className="space-y-6">
-    <div className="glass p-5 sm:p-7">
+    <div className="card p-5 sm:p-7">
         <div className="mb-4 flex items-center justify-between">
           <h3 className="t-strong text-base font-black">گزارش مالی</h3>
         </div>
@@ -102,14 +102,12 @@ export default function ReportTab({ incomes, expenses, currency }) {
         {/* Balance hero card — saturated gradient stays beautiful in both themes */}
         <div
           className={
-            'card-lift relative overflow-hidden rounded-3xl p-6 ring-1 backdrop-blur-xl lg:col-span-2 ' +
+            'card-lift relative overflow-hidden rounded-3xl p-6 ring-1 shadow-lg lg:col-span-2 ' +
             (stats.balance >= 0
               ? 'bg-gradient-to-br from-indigo-600 via-violet-600 to-fuchsia-600 shadow-2xl shadow-indigo-500/30 ring-white/20'
               : 'bg-gradient-to-br from-red-700 via-rose-600 to-orange-600 shadow-2xl shadow-red-500/30 ring-white/20')
           }
         >
-          <div className="pointer-events-none absolute -left-8 -top-10 h-36 w-36 animate-float-slow rounded-full bg-white/15 blur-2xl" />
-          <div className="pointer-events-none absolute -bottom-14 right-10 h-40 w-40 rounded-full bg-black/20 blur-2xl" />
 
           <div className="relative flex items-start justify-between">
             <div>
@@ -126,7 +124,7 @@ export default function ReportTab({ incomes, expenses, currency }) {
             </span>
           </div>
 
-          <div className="relative mt-5 flex items-center gap-2 rounded-2xl bg-white/10 px-4 py-2.5 text-sm font-extrabold text-white ring-1 ring-white/15 backdrop-blur">
+          <div className="relative mt-5 flex items-center gap-2 rounded-2xl bg-white/10 px-4 py-2.5 text-sm font-extrabold text-white">
             {stats.balance >= 0 ? (
               <>✅ عالی! شما در سود هستید — نرخ پس‌انداز {toFa(Math.max(0, stats.savingsRate))}٪</>
             ) : (
@@ -138,7 +136,7 @@ export default function ReportTab({ incomes, expenses, currency }) {
 
       {/* ---------- Comparison + savings insights ---------- */}
       <div className="grid gap-5 lg:grid-cols-3">
-        <div className="glass p-6 sm:p-7 lg:col-span-2">
+        <div className="card p-6 sm:p-7 lg:col-span-2">
           <div className="mb-5 flex items-center gap-3">
             <span className="chip-indigo flex h-10 w-10 items-center justify-center rounded-xl">
               <ArrowRightLeft size={18} />
@@ -164,7 +162,7 @@ export default function ReportTab({ incomes, expenses, currency }) {
         </div>
 
         {/* Savings rate donut */}
-        <div className="glass flex flex-col items-center justify-center gap-4 p-6 sm:p-7">
+        <div className="card flex flex-col items-center justify-center gap-4 p-6 sm:p-7">
           <div className="flex w-full items-center gap-3">
             <span className="chip-amber flex h-10 w-10 items-center justify-center rounded-xl">
               <PiggyBank size={18} />
@@ -206,8 +204,7 @@ const ACCENTS = {
 function GlassCard({ title, value, count, icon: Icon, accent, currency }) {
   const a = ACCENTS[accent]
   return (
-    <div className="glass card-lift group relative overflow-hidden p-6">
-      <div className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full bg-white/[0.04] blur-2xl transition-opacity duration-300 group-hover:opacity-100" />
+    <div className="card card-lift group relative overflow-hidden p-6">
       <div className="flex items-center justify-between">
         <p className="t-muted text-[13px] font-bold">{title}</p>
         <span className={`flex h-10 w-10 items-center justify-center rounded-2xl ${a.chip}`}>
@@ -276,7 +273,7 @@ function Donut({ percent, positive }) {
 
 function Chip({ icon: Icon, tone, children }) {
   return (
-    <span className={`glass-soft flex items-center gap-2 rounded-full px-4 py-2 text-xs font-extrabold ${tone}`}>
+    <span className={`inset-panel flex items-center gap-2 rounded-full px-4 py-2 text-xs font-extrabold ${tone}`}>
       <Icon size={14} />
       {children}
     </span>

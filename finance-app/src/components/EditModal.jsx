@@ -15,11 +15,11 @@ export default function EditModal({ open, title, onClose, children }) {
     >
       {/* backdrop */}
       <div
-        className="animate-backdrop-in absolute inset-0 bg-black/60 backdrop-blur-sm"
+        className="animate-backdrop-in absolute inset-0 bg-black/70"
         onClick={onClose}
       />
       {/* sheet */}
-      <div className="glass animate-sheet-in relative m-0 w-full max-w-lg rounded-b-none rounded-t-3xl p-6 pb-8 sm:m-4 sm:rounded-3xl sm:pb-6">
+      <div className="card-raised animate-sheet-in relative m-0 w-full max-w-lg rounded-b-none rounded-t-3xl p-6 pb-8 sm:m-4 sm:rounded-3xl sm:pb-6">
         <div className="mb-5 flex items-center justify-between">
           <h3 className="t-strong text-base font-black">{title}</h3>
           <button

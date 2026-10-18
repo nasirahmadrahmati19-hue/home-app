@@ -73,8 +73,7 @@ export default function ExpensesTab({ expenses, onAdd, onDelete, onUpdate, curre
   return (
     <div className="space-y-6">
       {/* ---------- Form ---------- */}
-      <form onSubmit={submit} className="glass relative overflow-hidden p-6 sm:p-7">
-        <div className="pointer-events-none absolute -left-16 -top-16 h-40 w-40 rounded-full bg-rose-500/15 blur-3xl" />
+      <form onSubmit={submit} className="card relative overflow-hidden p-6 sm:p-7">
 
         <div className="mb-5 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -83,7 +82,7 @@ export default function ExpensesTab({ expenses, onAdd, onDelete, onUpdate, curre
             </span>
             <h2 className="t-strong text-lg font-black">ثبت هزینه جدید</h2>
           </div>
-          <span className="glass-soft hidden px-3.5 py-1.5 text-xs font-bold acc-rose sm:block">
+          <span className="inset-panel hidden px-3.5 py-1.5 text-xs font-bold acc-rose sm:block">
             مجموع: {formatMoneyWithCurrency(total, currency)}
           </span>
         </div>
@@ -156,7 +155,7 @@ export default function ExpensesTab({ expenses, onAdd, onDelete, onUpdate, curre
       </form>
 
       {/* ---------- List ---------- */}
-      <div className="glass p-5 sm:p-7">
+      <div className="card p-5 sm:p-7">
         <div className="mb-4 flex items-center justify-between">
           <h3 className="t-strong text-base font-black">مصارف ثبت‌شده</h3>
           <span className="badge-rose rounded-full px-3.5 py-1 text-xs font-bold">
@@ -305,7 +304,7 @@ export default function ExpensesTab({ expenses, onAdd, onDelete, onUpdate, curre
               <button
                 type="button"
                 onClick={() => setEditing(null)}
-                className="glass-soft t-muted flex items-center justify-center gap-2 rounded-2xl px-5 py-3 font-extrabold transition-all duration-300 hover:text-white active:scale-[0.98]"
+                className="inset-panel t-muted flex items-center justify-center gap-2 rounded-2xl px-5 py-3 font-extrabold transition-all duration-300 hover:text-white active:scale-[0.98]"
               >
                 <X size={18} />
                 انصراف

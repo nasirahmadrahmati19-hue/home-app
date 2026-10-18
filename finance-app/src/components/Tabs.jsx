@@ -14,47 +14,50 @@ const GRADIENTS = {
 }
 
 export default function Tabs({ active, onChange }) {
-  const idx = Math.max(0, tabs.findIndex((t) => t.id === active))
+  // BUG FIX: previously an unknown `active` id fell back to index 0 (درآمد),
+  // which made clicks on «درآمد» and «گزارش مالی» appear swapped. Now we
+  // validate the id against the tab list and render nothing weird if unknown.
+  const validId = tabs.some((t) => t.id === active) ? active : 'income'
+  const idx = tabs.findIndex((t) => t.id === validId)
+
   return (
-    <div className="glass relative p-2">
-      {/* sliding pill behind the active tab — GPU transform only, no jitter */}
+    <nav className="tabbar relative p-1.5" aria-label="بخش‌های اصلی">
+      {/* sliding indicator — pure transform animation (GPU, no jitter) */}
       <span
         aria-hidden="true"
         className={
-          'pointer-events-none absolute bottom-2 top-2 hidden rounded-2xl bg-gradient-to-l text-white shadow-lg ring-1 ring-white/20 transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] sm:block ' +
-          GRADIENTS[active]
+          'tab-indicator pointer-events-none absolute bottom-1.5 top-1.5 rounded-[17px] bg-gradient-to-l shadow-lg transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ' +
+          GRADIENTS[validId]
         }
         style={{
-          width: 'calc((100% - 1rem) / 3)',
-          left: 'calc(0.5rem + (100% - 1rem) / 3 * ' + idx + ')',
+          width: 'calc((100% - 0.75rem) / 3)',
+          right: '0.375rem',
+          transform: 'translateX(calc(-1 * (100% + 0.25rem) * ' + idx + '))',
         }}
       />
-      <div className="relative grid grid-cols-3 gap-2" role="tablist">
+      <div className="relative grid grid-cols-3 gap-2">
         {tabs.map(({ id, label, icon: Icon }) => {
-          const isActive = active === id
+          const isActive = validId === id
           return (
             <button
               key={id}
-              role="tab"
-              aria-selected={isActive}
-              onClick={() => onChange(id)}
+              type="button"
+              aria-current={isActive ? 'page' : undefined}
+              onClick={(e) => {
+                e.preventDefault()
+                onChange(id)
+              }}
               className={
-                'group relative flex items-center justify-center gap-2 overflow-hidden rounded-2xl px-2 py-3.5 text-sm font-extrabold transition-colors duration-300 sm:px-3 ' +
-                (isActive
-                  ? 'text-white drop-shadow-sm sm:bg-transparent'
-                  : 't-muted hoverable hover:t-strong')
+                'group relative z-10 flex min-h-[48px] items-center justify-center gap-2 rounded-[17px] px-2 py-3 text-sm font-extrabold transition-colors duration-300 sm:px-3 ' +
+                (isActive ? 'text-white' : 't-muted hoverable hover:t-strong')
               }
             >
-              {/* mobile: active tab gets its own solid background (pill is desktop-only) */}
-              {isActive && (
-                <span className={'absolute inset-0 rounded-2xl bg-gradient-to-l shadow-lg ring-1 ring-white/20 sm:hidden ' + GRADIENTS[id]} />
-              )}
-              <Icon size={18} strokeWidth={2.4} className={'relative z-10 shrink-0 ' + (isActive ? '' : 'transition-transform duration-300 group-hover:-translate-y-0.5')} />
-              <span className="relative z-10 whitespace-nowrap">{label}</span>
+              <Icon size={18} strokeWidth={2.4} className={'shrink-0 transition-transform duration-300 ' + (isActive ? 'scale-110' : 'group-hover:-translate-y-0.5')} />
+              <span className="whitespace-nowrap">{label}</span>
             </button>
           )
         })}
       </div>
-    </div>
+    </nav>
   )
 }

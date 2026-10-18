@@ -7,7 +7,7 @@ import { CURRENCY_OPTIONS, currencyLabel } from '../utils/currency'
  */
 export default function CurrencyToggle({ value, onChange }) {
   return (
-    <div className="glass-soft flex items-center gap-1 p-1" role="group" aria-label="واحد پول">
+    <div className="inset-panel flex items-center gap-1 p-1" role="group" aria-label="واحد پول">
       <Coins size={15} className="mx-1.5 shrink-0 text-amber-300" />
       {CURRENCY_OPTIONS.map((opt) => {
         const isActive = value === opt.id
