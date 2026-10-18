@@ -4,17 +4,181 @@
 
 html {
   direction: rtl;
+  scroll-behavior: smooth;
 }
 
 body {
-  @apply font-vazir bg-slate-100 text-slate-800 antialiased;
+  @apply font-vazir text-slate-100 antialiased;
   font-feature-settings: '"ss02"';
+  background-color: #060714;
+  min-height: 100vh;
+  position: relative;
 }
 
-input[type='date']::-webkit-calendar-picker-indicator {
+/* ---------- Ambient aurora background ---------- */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  background:
+    radial-gradient(52rem 34rem at 8% -6%, rgba(16, 185, 129, 0.16), transparent 60%),
+    radial-gradient(46rem 32rem at 95% 4%, rgba(139, 92, 246, 0.18), transparent 60%),
+    radial-gradient(40rem 30rem at 50% 110%, rgba(56, 189, 248, 0.12), transparent 60%),
+    radial-gradient(30rem 24rem at 85% 85%, rgba(244, 63, 94, 0.10), transparent 60%),
+    #060714;
+}
+
+/* subtle grid texture */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.35;
+  background-image:
+    linear-gradient(rgba(148, 163, 184, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(148, 163, 184, 0.045) 1px, transparent 1px);
+  background-size: 44px 44px;
+  mask-image: radial-gradient(ellipse at 50% 0%, black 30%, transparent 75%);
+  -webkit-mask-image: radial-gradient(ellipse at 50% 0%, black 30%, transparent 75%);
+}
+
+/* ---------- Glassmorphism helpers ---------- */
+.glass {
+  @apply rounded-3xl border border-white/10 bg-white/[0.05] backdrop-blur-xl;
+  box-shadow:
+    0 10px 40px -12px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.glass-soft {
+  @apply rounded-2xl border border-white/[0.07] bg-white/[0.04] backdrop-blur-md;
+}
+
+.text-gradient {
+  background: linear-gradient(120deg, #34d399 0%, #22d3ee 45%, #a78bfa 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* ---------- Form controls ---------- */
+.field-label {
+  @apply block text-[13px] font-bold text-slate-300;
+}
+
+.field-input {
+  @apply w-full rounded-2xl border border-white/10 bg-white/[0.05] px-4 py-3 font-vazir text-slate-100 backdrop-blur transition-all duration-200 placeholder:text-slate-500 focus:border-emerald-400/50 focus:bg-white/[0.08] focus:outline-none focus:ring-2 focus:ring-emerald-400/20;
+}
+
+select.field-input {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: left 0.9rem center;
+  padding-left: 2.4rem;
+}
+
+select.field-input option {
+  background-color: #0b1020;
+  color: #e2e8f0;
+}
+
+input[type='date'].field-input::-webkit-calendar-picker-indicator {
+  filter: invert(0.7);
   cursor: pointer;
 }
 
-.card-shadow {
-  box-shadow: 0 4px 24px -6px rgb(15 23 42 / 0.1);
+/* ---------- Animations ---------- */
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-up {
+  animation: fade-up 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.stagger > * {
+  animation: fade-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.stagger > *:nth-child(1) { animation-delay: 0.03s; }
+.stagger > *:nth-child(2) { animation-delay: 0.08s; }
+.stagger > *:nth-child(3) { animation-delay: 0.13s; }
+.stagger > *:nth-child(4) { animation-delay: 0.18s; }
+.stagger > *:nth-child(5) { animation-delay: 0.23s; }
+.stagger > *:nth-child(6) { animation-delay: 0.28s; }
+.stagger > *:nth-child(7) { animation-delay: 0.33s; }
+.stagger > *:nth-child(8) { animation-delay: 0.38s; }
+
+@keyframes float-slow {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-14px) rotate(3deg); }
+}
+
+.animate-float-slow {
+  animation: float-slow 7s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.shimmer-text {
+  background: linear-gradient(
+    110deg,
+    rgba(255, 255, 255, 0.55) 20%,
+    rgba(255, 255, 255, 1) 50%,
+    rgba(255, 255, 255, 0.55) 80%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: shimmer 6s linear infinite;
+}
+
+/* glowing progress bars */
+.bar-glow-emerald {
+  box-shadow: 0 0 18px rgba(16, 185, 129, 0.55);
+}
+.bar-glow-rose {
+  box-shadow: 0 0 18px rgba(244, 63, 94, 0.5);
+}
+
+/* custom scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.25);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.45);
+  background-clip: content-box;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

@@ -19,9 +19,7 @@ export default function PersianNumberInput({ value, onChange, placeholder, id, c
       autoComplete="off"
       dir="ltr"
       className={
-        'w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-left font-vazir ' +
-        'placeholder:text-slate-300 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 ' +
-        className
+        'field-input text-left tabular-nums tracking-wide ' + className
       }
       style={{ textAlign: 'right' }}
       value={value}

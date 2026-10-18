@@ -1,6 +1,3 @@
-
-> finance-app@1.0.0 preview
-> vite preview --port 4173
-
+nohup: ignoring input
   ➜  Local:   http://localhost:4173/
-  ➜  Network: use --host to expose
+  ➜  Network: http://21.0.4.146:4173/
