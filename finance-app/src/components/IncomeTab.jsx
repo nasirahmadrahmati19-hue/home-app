@@ -10,32 +10,40 @@ const SOURCES = ['حقوق', 'فروش', 'هدیه', 'سرمایه‌گذاری'
 export default function IncomeTab({ incomes, onAdd, onDelete, onUpdate, currency }) {
   const [amount, setAmount] = useState('')
   const [source, setSource] = useState(SOURCES[0])
+  const [description, setDescription] = useState('')
   const [date, setDate] = useState(todayISO())
   const [error, setError] = useState('')
 
   // edit state
-  const [editing, setEditing] = useState(null) // {id, amount, source, date}
+  const [editing, setEditing] = useState(null) // {id, amount, source, description, date}
   const [editError, setEditError] = useState('')
 
   const submit = (e) => {
     e.preventDefault()
     const value = parseAmount(amount)
     if (!Number.isFinite(value) || value <= 0) {
-      setError('لطفاً مبلغ معتبر وارد کنید (مثلاً ۲۵٬۰۰۰)')
+      setError('لطفاً مبلغ معتبر وارد کنید')
       return
     }
     if (!date) {
       setError('تاریخ را انتخاب کنید')
       return
     }
-    onAdd({ amount: value, source, date })
+    onAdd({ amount: value, source, description: description.trim(), date })
     setAmount('')
+    setDescription('')
     setError('')
   }
 
   const openEdit = (item) => {
     setEditError('')
-    setEditing({ id: item.id, amount: String(item.amount), source: item.source, date: item.date })
+    setEditing({
+      id: item.id,
+      amount: String(item.amount),
+      source: item.source,
+      description: item.description || '',
+      date: item.date,
+    })
   }
 
   const saveEdit = (e) => {
@@ -49,7 +57,7 @@ export default function IncomeTab({ incomes, onAdd, onDelete, onUpdate, currency
       setEditError('تاریخ را انتخاب کنید')
       return
     }
-    onUpdate({ id: editing.id, amount: value, source: editing.source, date: editing.date })
+    onUpdate({ id: editing.id, amount: value, source: editing.source, description: editing.description.trim(), date: editing.date })
     setEditing(null)
   }
 
@@ -73,7 +81,7 @@ export default function IncomeTab({ incomes, onAdd, onDelete, onUpdate, currency
           </span>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <div className="space-y-2">
             <label htmlFor="income-amount" className="field-label">
               مبلغ ({currency === 'usd' ? 'دالر' : 'افغانی'})
@@ -82,7 +90,6 @@ export default function IncomeTab({ incomes, onAdd, onDelete, onUpdate, currency
               id="income-amount"
               value={amount}
               onChange={setAmount}
-              placeholder={currency === 'usd' ? '۱۰۰' : '۲۵٬۰۰۰'}
             />
           </div>
 
@@ -98,6 +105,18 @@ export default function IncomeTab({ incomes, onAdd, onDelete, onUpdate, currency
                 <option key={s} value={s}>{s}</option>
               ))}
             </select>
+          </div>
+
+          <div className="space-y-2">
+            <label htmlFor="income-description" className="field-label">توضیحات (اختیاری)</label>
+            <input
+              id="income-description"
+              type="text"
+              maxLength={80}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              className="field-input"
+            />
           </div>
 
           <div className="space-y-2">
@@ -168,6 +187,9 @@ export default function IncomeTab({ incomes, onAdd, onDelete, onUpdate, currency
                     </span>
                     <div className="min-w-0">
                       <p className="t-strong truncate font-extrabold">{item.source}</p>
+                      {item.description && (
+                        <p className="t-muted truncate text-xs font-bold">— {item.description}</p>
+                      )}
                       <p className="t-faint mt-1 flex items-center gap-1.5 text-xs font-bold">
                         <CalendarDays size={12} />
                         {formatJalaliDate(item.date)}
@@ -232,6 +254,17 @@ export default function IncomeTab({ incomes, onAdd, onDelete, onUpdate, currency
                   <option key={s} value={s}>{s}</option>
                 ))}
               </select>
+            </div>
+            <div className="space-y-2">
+              <label htmlFor="edit-income-description" className="field-label">توضیحات (اختیاری)</label>
+              <input
+                id="edit-income-description"
+                type="text"
+                maxLength={80}
+                value={editing.description}
+                onChange={(e) => setEditing((s) => ({ ...s, description: e.target.value }))}
+                className="field-input"
+              />
             </div>
             <div className="space-y-2">
               <label htmlFor="edit-income-date" className="field-label">تاریخ</label>

@@ -22,7 +22,7 @@ export default function ExpensesTab({ expenses, onAdd, onDelete, onUpdate, curre
     e.preventDefault()
     const value = parseAmount(amount)
     if (!Number.isFinite(value) || value <= 0) {
-      setError('لطفاً مبلغ معتبر وارد کنید (مثلاً ۱٬۵۰۰)')
+      setError('لطفاً مبلغ معتبر وارد کنید')
       return
     }
     if (!date) {
@@ -96,7 +96,6 @@ export default function ExpensesTab({ expenses, onAdd, onDelete, onUpdate, curre
               id="expense-amount"
               value={amount}
               onChange={setAmount}
-              placeholder={currency === 'usd' ? '۵۰' : '۱٬۵۰۰'}
             />
           </div>
 
@@ -121,7 +120,7 @@ export default function ExpensesTab({ expenses, onAdd, onDelete, onUpdate, curre
               type="text"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="مثلاً خرید هفتگی"
+             
               className="field-input"
             />
           </div>
@@ -273,7 +272,7 @@ export default function ExpensesTab({ expenses, onAdd, onDelete, onUpdate, curre
                 type="text"
                 value={editing.description}
                 onChange={(e) => setEditing((s) => ({ ...s, description: e.target.value }))}
-                placeholder="مثلاً خرید هفتگی"
+               
                 className="field-input"
               />
             </div>
