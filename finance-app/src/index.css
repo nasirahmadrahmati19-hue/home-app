@@ -146,6 +146,9 @@ body::after { display: none; }
 /* emerald / rose / amber / indigo accents readable in BOTH themes */
 .acc-emerald { color: #34d399; }
 .theme-light .acc-emerald { color: #047857; }
+.acc-cyan { color: #22d3ee; }
+.theme-light .acc-cyan { color: #0e7490; }
+.font-mono-num { font-variant-numeric: tabular-nums; letter-spacing: 0.02em; }
 .acc-rose { color: #fb7185; }
 .theme-light .acc-rose { color: #be123c; }
 .acc-amber { color: #fbbf24; }

@@ -3,6 +3,7 @@ import { Plus, Wallet, Trash2, Pencil, CalendarDays, Sprout, AlertCircle, Check,
 import PersianNumberInput from './PersianNumberInput'
 import EditModal from './EditModal'
 import { parseAmount, formatMoneyWithCurrency, toFa, todayISO, formatJalaliDate } from '../utils/persian'
+import JalaliDatePicker from './JalaliDatePicker'
 import { incomeMeta } from '../utils/categoryMeta'
 
 const SOURCES = ['حقوق', 'فروش', 'هدیه', 'سرمایه‌گذاری', 'فریلنسری', 'سایر']
@@ -121,13 +122,7 @@ export default function IncomeTab({ incomes, onAdd, onDelete, onUpdate, currency
 
           <div className="space-y-2">
             <label htmlFor="income-date" className="field-label">تاریخ</label>
-            <input
-              id="income-date"
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              className="field-input cursor-pointer"
-            />
+            <JalaliDatePicker id="income-date" value={date} onChange={setDate} />
           </div>
         </div>
 
@@ -268,13 +263,7 @@ export default function IncomeTab({ incomes, onAdd, onDelete, onUpdate, currency
             </div>
             <div className="space-y-2">
               <label htmlFor="edit-income-date" className="field-label">تاریخ</label>
-              <input
-                id="edit-income-date"
-                type="date"
-                value={editing.date}
-                onChange={(e) => setEditing((s) => ({ ...s, date: e.target.value }))}
-                className="field-input cursor-pointer"
-              />
+              <JalaliDatePicker id="edit-income-date" value={editing.date} onChange={(v) => setEditing((st) => ({ ...st, date: v }))} />
             </div>
             {editError && (
               <p className="flex items-center gap-2 rounded-xl border border-rose-400/30 bg-rose-500/10 px-4 py-2.5 text-sm font-bold text-rose-300">

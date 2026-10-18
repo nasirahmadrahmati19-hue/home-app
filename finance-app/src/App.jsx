@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Wallet2, Sparkles } from 'lucide-react'
+import { Wallet2, Sparkles, Clock3 } from 'lucide-react'
 import Tabs from './components/Tabs'
 import IncomeTab from './components/IncomeTab'
 import ExpensesTab from './components/ExpensesTab'
@@ -13,7 +13,7 @@ import {
   saveExpenses,
   uid,
 } from './utils/storage'
-import { todayJalali, jalaliMonthName, toFa } from './utils/persian'
+import { todayJalali, jalaliMonthName, toFa, kabulNow, formatKabulTime } from './utils/persian'
 import { useTheme } from './utils/theme'
 import { useCurrency } from './utils/currency'
 
@@ -45,6 +45,16 @@ export default function App() {
   const { jy, jm, jd } = todayJalali()
   const todayLabel = `${toFa(jd)} ${jalaliMonthName(jm)} ${toFa(jy)}`
 
+  // Live Kabul clock (12-hour display, UTC+4:30), ticks every second
+  const [kabul, setKabul] = useState(kabulNow)
+  useEffect(() => {
+    const t = setInterval(() => setKabul(kabulNow()), 1000)
+    return () => clearInterval(t)
+  }, [])
+  const h12 = kabul.h % 12 === 0 ? 12 : kabul.h % 12
+  const timeLabel = formatKabulTime({ h: h12, m: kabul.m, s: kabul.s })
+  const dayPart = kabul.h < 12 ? 'ق.ظ' : 'ب.ظ'
+
   return (
     <div dir="rtl" className="min-h-screen pb-16">
       {/* ---------- Header ---------- */}
@@ -67,6 +77,15 @@ export default function App() {
                 <p className="t-muted mt-1 text-[13px] font-bold sm:text-sm">
                   درآمدها، مصارف و گزارش ماهانه — همه در یک جای زیبا 🇦🇫
                 </p>
+                {/* live Kabul clock under the app title */}
+                <div className="inset-panel mt-3 inline-flex items-center gap-2 px-3.5 py-1.5">
+                  <Clock3 size={16} className="acc-cyan" />
+                  <span className="font-mono-num text-base font-black tracking-wide tabular-nums">
+                    {timeLabel}
+                  </span>
+                  <span className="t-muted text-[11px] font-black">{dayPart}</span>
+                  <span className="t-faint hidden text-[11px] font-bold sm:inline">— وقت کابل (۱۲ ساعته)</span>
+                </div>
               </div>
             </div>
 

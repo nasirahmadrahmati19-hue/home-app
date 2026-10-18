@@ -127,6 +127,58 @@ export function currentJalaliMonthKey() {
 }
 
 export function todayISO() {
-  const d = new Date()
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  // Today's date in Kabul timezone (UTC+4:30), returned as gregorian ISO
+  return kabulNow().dateStr
+}
+
+// ---------- Jalali <-> Gregorian for date pickers ----------
+
+const J_MONTHS_DAYS = [31, 31, 31, 31, 31, 31, 30, 30, 30, 30, 30, 29]
+
+export function isJalaliLeap(jy) {
+  // day-count between Nowruz of jy and jy+1 (pure arithmetic, no Date/TZ issues)
+  const g1 = jalaliToGregorian(jy, 1, 1)
+  const g2 = jalaliToGregorian(jy + 1, 1, 1)
+  const d1 = Date.UTC(g1[0], g1[1] - 1, g1[2])
+  const d2 = Date.UTC(g2[0], g2[1] - 1, g2[2])
+  return Math.round((d2 - d1) / 86400000) === 366
+}
+
+export function jalaliDaysInMonth(jy, jm) {
+  if (jm === 12 && !isJalaliLeap(jy)) return 29
+  if (jm === 12 && isJalaliLeap(jy)) return 30
+  return J_MONTHS_DAYS[jm - 1]
+}
+
+// Convert a Jalali triple to ISO gregorian string YYYY-MM-DD
+export function jalaliToISO(jy, jm, jd) {
+  const [gy, gm, gd] = jalaliToGregorian(jy, jm, jd)
+  return `${gy}-${String(gm).padStart(2, '0')}-${String(gd).padStart(2, '0')}`
+}
+
+// Parse "YYYY-MM-DD" gregorian ISO into jalali {jy,jm,jd}
+export function isoToJalali(iso) {
+  const [y, m, d] = String(iso).split('-').map(Number)
+  const [jy, jm, jd] = gregorianToJalali(y, m, d)
+  return { jy, jm, jd }
+}
+
+// Live Kabul time (UTC+4:30) — independent of device timezone
+export function kabulNow() {
+  const utcMs = Date.now() + Date.now() % 1000 // keep ms simple
+  const d = new Date(utcMs)
+  const offsetMin = 4 * 60 + 30
+  const local = new Date(d.getTime() + offsetMin * 60000)
+  // Use UTC getters on shifted date so device TZ doesn't interfere
+  return {
+    h: local.getUTCHours(),
+    m: local.getUTCMinutes(),
+    s: local.getUTCSeconds(),
+    dateStr: `${local.getUTCFullYear()}-${String(local.getUTCMonth() + 1).padStart(2, '0')}-${String(local.getUTCDate()).padStart(2, '0')}`,
+  }
+}
+
+export function formatKabulTime({ h, m, s }) {
+  const p = (n) => String(n).padStart(2, '0')
+  return toFa(`${p(h)}:${p(m)}:${p(s)}`)
 }
