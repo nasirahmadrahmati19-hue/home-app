@@ -14,9 +14,7 @@ const GRADIENTS = {
 }
 
 export default function Tabs({ active, onChange }) {
-  // BUG FIX: previously an unknown `active` id fell back to index 0 (درآمد),
-  // which made clicks on «درآمد» and «گزارش مالی» appear swapped. Now we
-  // validate the id against the tab list and render nothing weird if unknown.
+  // Validate the id against the tab list; unknown ids fall back to «درآمد».
   const validId = tabs.some((t) => t.id === active) ? active : 'income'
   const idx = tabs.findIndex((t) => t.id === validId)
 
@@ -42,11 +40,9 @@ export default function Tabs({ active, onChange }) {
             <button
               key={id}
               type="button"
-              aria-current={isActive ? 'page' : undefined}
-              onClick={(e) => {
-                e.preventDefault()
-                onChange(id)
-              }}
+              role="tab"
+              aria-selected={isActive}
+              onClick={() => onChange(id)}
               className={
                 'group relative z-10 flex min-h-[48px] items-center justify-center gap-2 rounded-[17px] px-2 py-3 text-sm font-extrabold transition-colors duration-300 sm:px-3 ' +
                 (isActive ? 'text-white' : 't-muted hoverable hover:t-strong')
