@@ -4,13 +4,9 @@ import PersianNumberInput from './PersianNumberInput'
 import EditModal from './EditModal'
 import { parseAmount, formatMoneyWithCurrency, toFa, todayISO, formatJalaliDate } from '../utils/persian'
 import JalaliDatePicker from './JalaliDatePicker'
-import { expenseMeta } from '../utils/categoryMeta'
-
-const CATEGORIES = ['اجاره', 'غذا', 'حمل‌ونقل', 'قبوض', 'خرید', 'پزشکی', 'سرگرمی', 'سایر']
 
 export default function ExpensesTab({ expenses, onAdd, onDelete, onUpdate, currency }) {
   const [amount, setAmount] = useState('')
-  const [category, setCategory] = useState(CATEGORIES[0])
   const [description, setDescription] = useState('')
   const [date, setDate] = useState(todayISO())
   const [error, setError] = useState('')
@@ -30,7 +26,7 @@ export default function ExpensesTab({ expenses, onAdd, onDelete, onUpdate, curre
       setError('تاریخ را انتخاب کنید')
       return
     }
-    onAdd({ amount: value, category, description: description.trim(), date })
+    onAdd({ amount: value, description: description.trim(), date })
     setAmount('')
     setDescription('')
     setError('')
@@ -41,7 +37,6 @@ export default function ExpensesTab({ expenses, onAdd, onDelete, onUpdate, curre
     setEditing({
       id: item.id,
       amount: String(item.amount),
-      category: item.category,
       description: item.description || '',
       date: item.date,
     })
@@ -61,7 +56,6 @@ export default function ExpensesTab({ expenses, onAdd, onDelete, onUpdate, curre
     onUpdate({
       id: editing.id,
       amount: value,
-      category: editing.category,
       description: editing.description.trim(),
       date: editing.date,
     })
@@ -88,7 +82,7 @@ export default function ExpensesTab({ expenses, onAdd, onDelete, onUpdate, curre
           </span>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <div className="space-y-2">
             <label htmlFor="expense-amount" className="field-label">
               مبلغ ({currency === 'usd' ? 'دالر' : 'افغانی'})
@@ -98,20 +92,6 @@ export default function ExpensesTab({ expenses, onAdd, onDelete, onUpdate, curre
               value={amount}
               onChange={setAmount}
             />
-          </div>
-
-          <div className="space-y-2">
-            <label htmlFor="expense-category" className="field-label">دسته‌بندی</label>
-            <select
-              id="expense-category"
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              className="field-input cursor-pointer"
-            >
-              {CATEGORIES.map((c) => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
           </div>
 
           <div className="space-y-2">
@@ -170,65 +150,54 @@ export default function ExpensesTab({ expenses, onAdd, onDelete, onUpdate, curre
           </div>
         ) : (
           <ul className="stagger space-y-3">
-            {sorted.map((item) => {
-              const meta = expenseMeta(item.category)
-              const Icon = meta.icon
-              return (
-                <li
-                  key={item.id}
-                  className="hoverable card-lift flex items-center justify-between gap-3 rounded-2xl border px-3.5 py-3 sm:px-4"
-                  style={{ borderColor: 'var(--divider)', background: 'var(--soft-bg)' }}
-                >
-                  <div className="flex min-w-0 items-center gap-3 sm:gap-3.5">
-                    <span
-                      className="cat-chip flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl"
-                      style={meta.style}
-                    >
-                      <Icon size={19} />
-                    </span>
-                    <div className="min-w-0">
-                      <p className="t-strong truncate font-extrabold">
-                        {item.category}
-                        {item.description && (
-                          <span className="t-muted mr-2 hidden text-sm font-bold sm:inline">— {item.description}</span>
-                        )}
-                      </p>
-                      {item.description && (
-                        <p className="t-muted truncate text-xs font-bold sm:hidden">— {item.description}</p>
-                      )}
-                      <p className="t-faint mt-1 flex items-center gap-1.5 text-xs font-bold">
-                        <CalendarDays size={12} />
-                        {formatJalaliDate(item.date)}
-                      </p>
-                    </div>
+            {sorted.map((item) => (
+              <li
+                key={item.id}
+                className="hoverable card-lift flex items-center justify-between gap-3 rounded-2xl border px-3.5 py-3 sm:px-4"
+                style={{ borderColor: 'var(--divider)', background: 'var(--soft-bg)' }}
+              >
+                <div className="flex min-w-0 items-center gap-3 sm:gap-3.5">
+                  <span
+                    className="chip-rose flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl"
+                  >
+                    <Receipt size={19} />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="t-strong truncate font-extrabold">
+                      {item.description || 'هزینه'}
+                    </p>
+                    <p className="t-faint mt-1 flex items-center gap-1.5 text-xs font-bold">
+                      <CalendarDays size={12} />
+                      {formatJalaliDate(item.date)}
+                    </p>
                   </div>
-                  <div className="flex shrink-0 items-center gap-1.5">
-                    <span className="amount-pill-neg hidden rounded-xl px-3 py-1.5 text-sm font-black sm:block">
-                      −{formatMoneyWithCurrency(item.amount, currency)}
-                    </span>
-                    <span className="amount-pill-neg rounded-xl px-2.5 py-1.5 text-xs font-black sm:hidden">
-                      −{toFa(Math.round(item.amount).toLocaleString('en-US').replace(/,/g, '٬'))}
-                    </span>
-                    <button
-                      onClick={() => openEdit(item)}
-                      title="ویرایش"
-                      aria-label={`ویرایش ${item.category}`}
-                      className="btn-edit rounded-xl p-2.5 transition-all duration-200"
-                    >
-                      <Pencil size={16} />
-                    </button>
-                    <button
-                      onClick={() => onDelete(item.id)}
-                      title="حذف"
-                      aria-label={`حذف ${item.category}`}
-                      className="btn-delete rounded-xl p-2.5 transition-all duration-200"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                </li>
-              )
-            })}
+                </div>
+                <div className="flex shrink-0 items-center gap-1.5">
+                  <span className="amount-pill-neg hidden rounded-xl px-3 py-1.5 text-sm font-black sm:block">
+                    −{formatMoneyWithCurrency(item.amount, currency)}
+                  </span>
+                  <span className="amount-pill-neg rounded-xl px-2.5 py-1.5 text-xs font-black sm:hidden">
+                    −{toFa(Math.round(item.amount).toLocaleString('en-US').replace(/,/g, '٬'))}
+                  </span>
+                  <button
+                    onClick={() => openEdit(item)}
+                    title="ویرایش"
+                    aria-label="ویرایش هزینه"
+                    className="btn-edit rounded-xl p-2.5 transition-all duration-200"
+                  >
+                    <Pencil size={16} />
+                  </button>
+                  <button
+                    onClick={() => onDelete(item.id)}
+                    title="حذف"
+                    aria-label="حذف هزینه"
+                    className="btn-delete rounded-xl p-2.5 transition-all duration-200"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              </li>
+            ))}
           </ul>
         )}
       </div>
@@ -246,19 +215,6 @@ export default function ExpensesTab({ expenses, onAdd, onDelete, onUpdate, curre
                 value={editing.amount}
                 onChange={(v) => setEditing((s) => ({ ...s, amount: v }))}
               />
-            </div>
-            <div className="space-y-2">
-              <label htmlFor="edit-expense-category" className="field-label">دسته‌بندی</label>
-              <select
-                id="edit-expense-category"
-                value={editing.category}
-                onChange={(e) => setEditing((s) => ({ ...s, category: e.target.value }))}
-                className="field-input cursor-pointer"
-              >
-                {CATEGORIES.map((c) => (
-                  <option key={c} value={c}>{c}</option>
-                ))}
-              </select>
             </div>
             <div className="space-y-2">
               <label htmlFor="edit-expense-desc" className="field-label">توضیح (اختیاری)</label>

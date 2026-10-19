@@ -4,13 +4,9 @@ import PersianNumberInput from './PersianNumberInput'
 import EditModal from './EditModal'
 import { parseAmount, formatMoneyWithCurrency, toFa, todayISO, formatJalaliDate } from '../utils/persian'
 import JalaliDatePicker from './JalaliDatePicker'
-import { incomeMeta } from '../utils/categoryMeta'
-
-const SOURCES = ['حقوق', 'فروش', 'هدیه', 'سرمایه‌گذاری', 'فریلنسری', 'سایر']
 
 export default function IncomeTab({ incomes, onAdd, onDelete, onUpdate, currency }) {
   const [amount, setAmount] = useState('')
-  const [source, setSource] = useState(SOURCES[0])
   const [description, setDescription] = useState('')
   const [date, setDate] = useState(todayISO())
   const [error, setError] = useState('')
@@ -30,7 +26,7 @@ export default function IncomeTab({ incomes, onAdd, onDelete, onUpdate, currency
       setError('تاریخ را انتخاب کنید')
       return
     }
-    onAdd({ amount: value, source, description: description.trim(), date })
+    onAdd({ amount: value, description: description.trim(), date })
     setAmount('')
     setDescription('')
     setError('')
@@ -41,7 +37,6 @@ export default function IncomeTab({ incomes, onAdd, onDelete, onUpdate, currency
     setEditing({
       id: item.id,
       amount: String(item.amount),
-      source: item.source,
       description: item.description || '',
       date: item.date,
     })
@@ -58,7 +53,7 @@ export default function IncomeTab({ incomes, onAdd, onDelete, onUpdate, currency
       setEditError('تاریخ را انتخاب کنید')
       return
     }
-    onUpdate({ id: editing.id, amount: value, source: editing.source, description: editing.description.trim(), date: editing.date })
+    onUpdate({ id: editing.id, amount: value, description: editing.description.trim(), date: editing.date })
     setEditing(null)
   }
 
@@ -82,7 +77,7 @@ export default function IncomeTab({ incomes, onAdd, onDelete, onUpdate, currency
           </span>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <div className="space-y-2">
             <label htmlFor="income-amount" className="field-label">
               مبلغ ({currency === 'usd' ? 'دالر' : 'افغانی'})
@@ -92,20 +87,6 @@ export default function IncomeTab({ incomes, onAdd, onDelete, onUpdate, currency
               value={amount}
               onChange={setAmount}
             />
-          </div>
-
-          <div className="space-y-2">
-            <label htmlFor="income-source" className="field-label">منبع درآمد</label>
-            <select
-              id="income-source"
-              value={source}
-              onChange={(e) => setSource(e.target.value)}
-              className="field-input cursor-pointer"
-            >
-              {SOURCES.map((s) => (
-                <option key={s} value={s}>{s}</option>
-              ))}
-            </select>
           </div>
 
           <div className="space-y-2">
@@ -164,61 +145,55 @@ export default function IncomeTab({ incomes, onAdd, onDelete, onUpdate, currency
           </div>
         ) : (
           <ul className="stagger space-y-3">
-            {sorted.map((item) => {
-              const meta = incomeMeta(item.source)
-              const Icon = meta.icon
-              return (
-                <li
-                  key={item.id}
-                  className="hoverable card-lift flex items-center justify-between gap-3 rounded-2xl border px-3.5 py-3 sm:px-4"
-                  style={{ borderColor: 'var(--divider)', background: 'var(--soft-bg)' }}
-                >
-                  <div className="flex min-w-0 items-center gap-3 sm:gap-3.5">
-                    <span
-                      className="cat-chip flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl"
-                      style={meta.style}
-                    >
-                      <Icon size={19} />
-                    </span>
-                    <div className="min-w-0">
-                      <p className="t-strong truncate font-extrabold">{item.source}</p>
-                      {item.description && (
-                        <p className="t-muted truncate text-xs font-bold">— {item.description}</p>
-                      )}
-                      <p className="t-faint mt-1 flex items-center gap-1.5 text-xs font-bold">
-                        <CalendarDays size={12} />
-                        {formatJalaliDate(item.date)}
-                      </p>
-                    </div>
+            {sorted.map((item) => (
+              <li
+                key={item.id}
+                className="hoverable card-lift flex items-center justify-between gap-3 rounded-2xl border px-3.5 py-3 sm:px-4"
+                style={{ borderColor: 'var(--divider)', background: 'var(--soft-bg)' }}
+              >
+                <div className="flex min-w-0 items-center gap-3 sm:gap-3.5">
+                  <span
+                    className="chip-emerald flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl"
+                  >
+                    <Wallet size={19} />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="t-strong truncate font-extrabold">
+                      {item.description || 'درآمد'}
+                    </p>
+                    <p className="t-faint mt-1 flex items-center gap-1.5 text-xs font-bold">
+                      <CalendarDays size={12} />
+                      {formatJalaliDate(item.date)}
+                    </p>
                   </div>
-                  {/* actions always visible on touch devices (no hover needed) */}
-                  <div className="flex shrink-0 items-center gap-1.5">
-                    <span className="amount-pill-pos hidden rounded-xl px-3 py-1.5 text-sm font-black sm:block">
-                      +{formatMoneyWithCurrency(item.amount, currency)}
-                    </span>
-                    <span className="amount-pill-pos rounded-xl px-2.5 py-1.5 text-xs font-black sm:hidden">
-                      +{toFa(Math.round(item.amount).toLocaleString('en-US').replace(/,/g, '٬'))}
-                    </span>
-                    <button
-                      onClick={() => openEdit(item)}
-                      title="ویرایش"
-                      aria-label={`ویرایش ${item.source}`}
-                      className="btn-edit rounded-xl p-2.5 transition-all duration-200"
-                    >
-                      <Pencil size={16} />
-                    </button>
-                    <button
-                      onClick={() => onDelete(item.id)}
-                      title="حذف"
-                      aria-label={`حذف ${item.source}`}
-                      className="btn-delete rounded-xl p-2.5 transition-all duration-200"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                </li>
-              )
-            })}
+                </div>
+                {/* actions always visible on touch devices (no hover needed) */}
+                <div className="flex shrink-0 items-center gap-1.5">
+                  <span className="amount-pill-pos hidden rounded-xl px-3 py-1.5 text-sm font-black sm:block">
+                    +{formatMoneyWithCurrency(item.amount, currency)}
+                  </span>
+                  <span className="amount-pill-pos rounded-xl px-2.5 py-1.5 text-xs font-black sm:hidden">
+                    +{toFa(Math.round(item.amount).toLocaleString('en-US').replace(/,/g, '٬'))}
+                  </span>
+                  <button
+                    onClick={() => openEdit(item)}
+                    title="ویرایش"
+                    aria-label="ویرایش درآمد"
+                    className="btn-edit rounded-xl p-2.5 transition-all duration-200"
+                  >
+                    <Pencil size={16} />
+                  </button>
+                  <button
+                    onClick={() => onDelete(item.id)}
+                    title="حذف"
+                    aria-label="حذف درآمد"
+                    className="btn-delete rounded-xl p-2.5 transition-all duration-200"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              </li>
+            ))}
           </ul>
         )}
       </div>
@@ -236,19 +211,6 @@ export default function IncomeTab({ incomes, onAdd, onDelete, onUpdate, currency
                 value={editing.amount}
                 onChange={(v) => setEditing((s) => ({ ...s, amount: v }))}
               />
-            </div>
-            <div className="space-y-2">
-              <label htmlFor="edit-income-source" className="field-label">منبع درآمد</label>
-              <select
-                id="edit-income-source"
-                value={editing.source}
-                onChange={(e) => setEditing((s) => ({ ...s, source: e.target.value }))}
-                className="field-input cursor-pointer"
-              >
-                {SOURCES.map((s) => (
-                  <option key={s} value={s}>{s}</option>
-                ))}
-              </select>
             </div>
             <div className="space-y-2">
               <label htmlFor="edit-income-description" className="field-label">توضیحات (اختیاری)</label>
