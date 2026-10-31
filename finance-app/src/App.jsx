@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Wallet2, Sparkles, Clock3, LogOut, UserRound } from 'lucide-react'
+import { Wallet2, Sparkles, Clock3, LogOut, UserRound, Loader2 } from 'lucide-react'
 import Tabs from './components/Tabs'
 import IncomeTab from './components/IncomeTab'
 import ExpensesTab from './components/ExpensesTab'
@@ -7,64 +7,147 @@ import ReportTab from './components/ReportTab'
 import ThemeToggle from './components/ThemeToggle'
 import CurrencyToggle from './components/CurrencyToggle'
 import AuthGate from './components/AuthGate'
+import { firebaseReady } from './lib/firebase'
 import {
-  loadIncomes,
-  saveIncomes,
-  loadExpenses,
-  saveExpenses,
-  uid,
+  subscribeEntries,
+  addEntry,
+  updateEntry,
+  deleteEntry,
 } from './utils/storage'
-import { currentUser, clearSession } from './utils/auth'
+import { subscribeAuth, logout as fbLogout, fetchProfile } from './utils/auth'
 import { todayJalali, jalaliMonthName, toFa, kabulNow, formatKabulTime } from './utils/persian'
 import { useTheme } from './utils/theme'
 import { useCurrency } from './utils/currency'
 
-export default function App() {
-  // ---------- Authentication gate ----------
-  const [user, setUser] = useState(currentUser)
+// Small full-screen loader used while Firebase resolves the session/data.
+function Splash({ text }) {
+  return (
+    <div dir="rtl" className="flex min-h-screen flex-col items-center justify-center gap-4 px-4">
+      <span className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-400 via-teal-500 to-cyan-600 text-white shadow-lg shadow-emerald-500/40 ring-1 ring-white/20">
+        <Wallet2 size={30} strokeWidth={2.2} />
+      </span>
+      <div className="flex items-center gap-2 t-muted text-sm font-black">
+        <Loader2 size={18} className="animate-spin acc-cyan" />
+        {text}
+      </div>
+    </div>
+  )
+}
 
-  const logout = () => {
-    clearSession()
-    setUser(null)
+export default function App() {
+  // ---------- Authentication gate (Firebase Auth — live session) ----------
+  const [authState, setAuthState] = useState('loading') // loading | out | in
+  const [user, setUser] = useState(null)
+  const [profile, setProfile] = useState(null) // Firestore users/{uid}
+
+  useEffect(() => {
+    if (!firebaseReady) {
+      // Config not filled yet — show the gate with a clear notice instead of crashing.
+      setAuthState('missing-config')
+      return
+    }
+    return subscribeAuth((u) => {
+      if (u) {
+        setUser(u)
+        setAuthState('in')
+        fetchProfile(u.uid).then(setProfile)
+      } else {
+        setUser(null)
+        setProfile(null)
+        setAuthState('out')
+      }
+    })
+  }, [])
+
+  const handleLogout = async () => {
+    try {
+      await fbLogout()
+    } catch {
+      /* session cleared by Firebase anyway on most errors */
+    }
   }
 
-  if (!user) {
+  if (authState === 'loading') return <Splash text="در حال برقراری ارتباط با سرور جمیل…" />
+
+  if (authState === 'missing-config') {
+    return (
+      <div dir="rtl" className="flex min-h-screen items-center justify-center px-4">
+        <div className="card-raised max-w-md px-7 py-8 text-center">
+          <h2 className="text-gradient mb-3 text-xl font-black">کانفیگ Firebase کامل نیست</h2>
+          <p className="t-muted text-sm font-bold leading-7">
+            برای فعال شدن ورد برنامه، مقادیر پروژه خود را در فایل{' '}
+            <code dir="ltr" className="inset-panel px-2 py-0.5 text-[12px]">src/lib/firebase.js</code>{' '}
+            (یا متغیرهای محیطی <code dir="ltr" className="inset-panel px-2 py-0.5 text-[12px]">VITE_FIREBASE_*</code>)
+            قرار دهید و دوباره build بگیرید.
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  if (authState === 'out') {
     return <AuthGate onAuthed={setUser} />
   }
 
-  return <FinanceApp user={user} onLogout={logout} />
+  return <FinanceApp key={user.uid} user={user} profile={profile} onLogout={handleLogout} />
 }
 
-function FinanceApp({ user, onLogout }) {
+function FinanceApp({ user, profile, onLogout }) {
   const [active, setActive] = useState('income')
-  const [incomes, setIncomes] = useState(loadIncomes)
-  const [expenses, setExpenses] = useState(loadExpenses)
-  const [theme, toggleTheme] = useTheme()
-  const [currency, setCurrency] = useCurrency()
+  const [incomes, setIncomes] = useState([])
+  const [expenses, setExpenses] = useState([])
+  const [loadingData, setLoadingData] = useState(true)
+  const [syncError, setSyncError] = useState('')
+  const [theme, toggleTheme] = useTheme(user.uid, profile?.theme)
+  const [currency, setCurrency] = useCurrency(user.uid, profile?.currency)
 
-  // Persist to localStorage on every change
-  useEffect(() => saveIncomes(incomes), [incomes])
-  useEffect(() => saveExpenses(expenses), [expenses])
+  // Live subscription to this user's Firestore collections (cross-device sync)
+  useEffect(() => {
+    let ready = 0
+    const done = () => {
+      ready += 1
+      if (ready >= 2) setLoadingData(false)
+    }
+    const err = (e) => {
+      setLoadingData(false)
+      setSyncError(
+        e?.code === 'permission-denied'
+          ? 'دسترسی به پایگاه داده رد شد — قوانین Firestore را بررسی کنید.'
+          : 'خطا در همگام‌سازی با سرور — اتصال اینترنت خود را کنترل کنید.',
+      )
+    }
+    const unsubI = subscribeEntries(user.uid, 'incomes', (list) => {
+      setIncomes(list)
+      done()
+    }, err)
+    const unsubE = subscribeEntries(user.uid, 'expenses', (list) => {
+      setExpenses(list)
+      done()
+    }, err)
+    return () => {
+      unsubI()
+      unsubE()
+    }
+  }, [user.uid])
 
-  const addIncome = (data) =>
-    setIncomes((prev) => [{ id: uid(), ...data }, ...prev])
-
-  const addExpense = (data) =>
-    setExpenses((prev) => [{ id: uid(), ...data }, ...prev])
-
-  const deleteIncome = (id) => setIncomes((prev) => prev.filter((i) => i.id !== id))
-  const deleteExpense = (id) => setExpenses((prev) => prev.filter((e) => e.id !== id))
-
-  const updateIncome = (patch) =>
-    setIncomes((prev) => prev.map((i) => (i.id === patch.id ? { ...i, ...patch } : i)))
-  const updateExpense = (patch) =>
-    setExpenses((prev) => prev.map((e) => (e.id === patch.id ? { ...e, ...patch } : e)))
+  const addIncome = (data) => addEntry(user.uid, 'incomes', data)
+  const addExpense = (data) => addEntry(user.uid, 'expenses', data)
+  const deleteIncome = (id) => deleteEntry(user.uid, 'incomes', id)
+  const deleteExpense = (id) => deleteEntry(user.uid, 'expenses', id)
+  const updateIncome = (patch) => {
+    const { id, ...rest } = patch
+    updateEntry(user.uid, 'incomes', id, rest)
+  }
+  const updateExpense = (patch) => {
+    const { id, ...rest } = patch
+    updateEntry(user.uid, 'expenses', id, rest)
+  }
 
   const { jy, jm, jd } = todayJalali()
   const todayLabel = `${toFa(jd)} ${jalaliMonthName(jm)} ${toFa(jy)}`
 
   // Live Kabul clock (12-hour display, UTC+4:30), ticks every second
-  const [kabul, setKabul] = useState(kabulNow)
+  const [kabul, setKabul] = useState(kabulNow())
   useEffect(() => {
     const t = setInterval(() => setKabul(kabulNow()), 1000)
     return () => clearInterval(t)
@@ -143,26 +226,41 @@ function FinanceApp({ user, onLogout }) {
 
       {/* ---------- Main ---------- */}
       <main className="mx-auto max-w-4xl px-4">
-        <div className="animate-fade-up mb-8 mt-7" style={{ animationDelay: '0.1s' }}>
-          <Tabs active={active} onChange={setActive} />
-        </div>
+        {syncError && (
+          <div className="mt-6 rounded-xl border border-rose-400/40 bg-rose-500/10 px-5 py-3 text-sm font-black text-rose-400">
+            {syncError}
+          </div>
+        )}
 
-        <div key={active} className="animate-fade-up">
-          {active === 'income' && (
-            <IncomeTab incomes={incomes} onAdd={addIncome} onDelete={deleteIncome} onUpdate={updateIncome} currency={currency} />
-          )}
-          {active === 'expenses' && (
-            <ExpensesTab expenses={expenses} onAdd={addExpense} onDelete={deleteExpense} onUpdate={updateExpense} currency={currency} />
-          )}
-          {active === 'report' && (
-            <ReportTab incomes={incomes} expenses={expenses} currency={currency} />
-          )}
-        </div>
+        {loadingData ? (
+          <div className="flex items-center justify-center gap-3 py-24 t-muted text-sm font-black">
+            <Loader2 size={20} className="animate-spin acc-cyan" />
+            در حال بارگذاری معلومات شما از سرور…
+          </div>
+        ) : (
+          <>
+            <div className="animate-fade-up mb-8 mt-7" style={{ animationDelay: '0.1s' }}>
+              <Tabs active={active} onChange={setActive} />
+            </div>
+
+            <div key={active} className="animate-fade-up">
+              {active === 'income' && (
+                <IncomeTab incomes={incomes} onAdd={addIncome} onDelete={deleteIncome} onUpdate={updateIncome} currency={currency} />
+              )}
+              {active === 'expenses' && (
+                <ExpensesTab expenses={expenses} onAdd={addExpense} onDelete={deleteExpense} onUpdate={updateExpense} currency={currency} />
+              )}
+              {active === 'report' && (
+                <ReportTab incomes={incomes} expenses={expenses} currency={currency} />
+              )}
+            </div>
+          </>
+        )}
       </main>
 
       {/* ---------- Footer ---------- */}
       <footer className="t-faint mx-auto mt-14 max-w-4xl px-4 text-center text-xs font-bold">
-        ساخته‌شده با ❤️ برای مدیریت هوشمند پول — داده‌ها فقط روی دستگاه شما ذخیره می‌شوند
+        ساخته‌شده با ❤️ برای مدیریت هوشمند پول — معلومات شما ابری در Firebase ذخیره می‌شود
       </footer>
     </div>
   )

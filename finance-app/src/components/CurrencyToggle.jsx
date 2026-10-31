@@ -3,7 +3,7 @@ import { CURRENCY_OPTIONS, currencyLabel } from '../utils/currency'
 
 /**
  * Segmented control to switch between Afghani (افغانی) and US Dollar (دالر).
- * Stored globally in localStorage via utils/currency.js.
+ * Stored per-user in Firestore via utils/currency.js (no localStorage).
  */
 export default function CurrencyToggle({ value, onChange }) {
   return (

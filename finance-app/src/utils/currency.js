@@ -1,7 +1,8 @@
 // ---------- Currency support for Afghanistan: Afghani (؋) & US Dollar ($) ----------
+// Preference is persisted in the Firestore user profile — no localStorage.
 import { useEffect, useState } from 'react'
-
-const CURRENCY_KEY = 'finance_app_currency'
+import { doc, setDoc } from 'firebase/firestore'
+import { db } from '../lib/firebase'
 
 export const CURRENCIES = {
   // Full word «افغانی» is used as the display unit (instead of only the ؋ sign)
@@ -19,25 +20,24 @@ export function currencySymbol(id) {
   return (CURRENCIES[id] || CURRENCIES.afn).symbol
 }
 
-export function getInitialCurrency() {
-  try {
-    const saved = localStorage.getItem(CURRENCY_KEY)
-    if (saved === 'afn' || saved === 'usd') return saved
-  } catch {
-    /* ignore */
-  }
-  return 'afn' // default for our Afghan users 🇦🇫
-}
+/**
+ * React hook: returns [currencyId, setCurrency], persisted per-user in
+ * Firestore (users/{uid}.currency). `initialCurrency` comes from the
+ * profile fetched at login; default is afn for our Afghan users 🇦🇫
+ */
+export function useCurrency(userId, initialCurrency) {
+  const [currency, setCurrency] = useState(
+    initialCurrency === 'afn' || initialCurrency === 'usd' ? initialCurrency : 'afn',
+  )
 
-/** React hook: returns [currencyId, setCurrency], persisted in localStorage. */
-export function useCurrency() {
-  const [currency, setCurrency] = useState(getInitialCurrency)
   useEffect(() => {
-    try {
-      localStorage.setItem(CURRENCY_KEY, currency)
-    } catch {
-      /* ignore */
-    }
-  }, [currency])
+    if (initialCurrency === 'afn' || initialCurrency === 'usd') setCurrency(initialCurrency)
+  }, [initialCurrency])
+
+  useEffect(() => {
+    if (!userId) return
+    setDoc(doc(db, 'users', userId), { currency }, { merge: true }).catch(() => {})
+  }, [userId, currency])
+
   return [currency, setCurrency]
 }
