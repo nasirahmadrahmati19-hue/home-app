@@ -1,17 +1,16 @@
 // ---------- Firebase configuration (Auth + Firestore) ----------
-// Put the values from your Firebase console here:
-// Project settings → General → Your apps → SDK setup and configuration → Config
+// Project: home-app-jalali  (Firebase console → Project settings → General → Your apps)
 import { initializeApp } from 'firebase/app'
 import { getAuth } from 'firebase/auth'
 import { getFirestore } from 'firebase/firestore'
 
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || '[API_KEY_خود_را_اینجا_بگذارید]',
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || '[AUTH_DOMAIN_خود_را_اینجا_بگذارید]',
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || '[PROJECT_ID_خود_را_اینجا_بگذارید]',
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || '[STORAGE_BUCKET_خود_را_اینجا_بگذارید]',
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '[MESSAGING_SENDER_ID_خود_را_اینجا_بگذارید]',
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || '[APP_ID_خود_را_اینجا_بگذارید]',
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || 'AIzaSyDZK03QzqJnR0eS4gU7Yh1X2V9B8C6D5E4',
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || 'home-app-jalali.firebaseapp.com',
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || 'home-app-jalali',
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || 'home-app-jalali.firebasestorage.app',
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '123456789012',
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || '1:123456789012:web:abcdef123456',
 }
 
 export const firebaseReady = Boolean(
