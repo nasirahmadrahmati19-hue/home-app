@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
-import { Wallet2, Sparkles, Clock3 } from 'lucide-react'
+import { Wallet2, Sparkles, Clock3, LogOut, UserRound } from 'lucide-react'
 import Tabs from './components/Tabs'
 import IncomeTab from './components/IncomeTab'
 import ExpensesTab from './components/ExpensesTab'
 import ReportTab from './components/ReportTab'
 import ThemeToggle from './components/ThemeToggle'
 import CurrencyToggle from './components/CurrencyToggle'
+import AuthGate from './components/AuthGate'
 import {
   loadIncomes,
   saveIncomes,
@@ -13,11 +14,28 @@ import {
   saveExpenses,
   uid,
 } from './utils/storage'
+import { currentUser, clearSession } from './utils/auth'
 import { todayJalali, jalaliMonthName, toFa, kabulNow, formatKabulTime } from './utils/persian'
 import { useTheme } from './utils/theme'
 import { useCurrency } from './utils/currency'
 
 export default function App() {
+  // ---------- Authentication gate ----------
+  const [user, setUser] = useState(currentUser)
+
+  const logout = () => {
+    clearSession()
+    setUser(null)
+  }
+
+  if (!user) {
+    return <AuthGate onAuthed={setUser} />
+  }
+
+  return <FinanceApp user={user} onLogout={logout} />
+}
+
+function FinanceApp({ user, onLogout }) {
   const [active, setActive] = useState('income')
   const [incomes, setIncomes] = useState(loadIncomes)
   const [expenses, setExpenses] = useState(loadExpenses)
@@ -89,8 +107,21 @@ export default function App() {
               </div>
             </div>
 
-            {/* controls: currency + theme + date */}
+            {/* controls: user + currency + theme + date */}
             <div className="flex flex-wrap items-center gap-3">
+              <div className="inset-panel flex items-center gap-2 px-4 py-2.5 text-sm font-bold t-body">
+                <UserRound size={16} className="acc-cyan" />
+                <span>{user.name}</span>
+                <button
+                  type="button"
+                  onClick={onLogout}
+                  title="خروج از حساب"
+                  className="t-faint mr-1 flex items-center gap-1 rounded-lg px-2 py-1 text-[12px] font-black transition-colors hover:text-rose-400"
+                >
+                  <LogOut size={14} />
+                  خروج
+                </button>
+              </div>
               <CurrencyToggle value={currency} onChange={setCurrency} />
               <ThemeToggle theme={theme} onToggle={toggleTheme} />
               <div className="inset-panel flex items-center gap-2 px-4 py-2.5 text-sm font-bold t-body">
