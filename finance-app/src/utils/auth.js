@@ -10,6 +10,7 @@ import {
   signOut,
   updateProfile,
   onAuthStateChanged,
+  fetchSignInMethodsForEmail,
 } from 'firebase/auth'
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore'
 import { auth, db } from '../lib/firebase'
@@ -66,6 +67,35 @@ export async function registerUser({ name, email, password }) {
   try {
     cred = await createUserWithEmailAndPassword(auth, cleanEmail, password)
   } catch (err) {
+    // If the email is already registered, verify the SAME credentials work on
+    // the login path before telling the user to use «وارد شدن» — this prevents
+    // the dead-loop of "already registered" followed by "not signed in".
+    if ((err && err.code) === 'auth/email-already-in-use') {
+      let methods = []
+      try {
+        methods = await fetchSignInMethodsForEmail(auth, cleanEmail)
+      } catch {
+        /* non-fatal */
+      }
+      if (methods.length > 0 && !methods.includes('password')) {
+        throw new Error(
+          `این جیمیل قبلاً با روش دیگری (${methods.join(', ')}) ثبت شده است و با رمز عبور وارد نمی‌شود.`,
+        )
+      }
+      try {
+        const lcred = await signInWithEmailAndPassword(auth, cleanEmail, password)
+        return {
+          ok: true,
+          alreadyRegistered: true,
+          user: { uid: lcred.user.uid, name: cleanName, email: cleanEmail },
+        }
+      } catch (err2) {
+        if (err2.message && err2.message !== friendlyError(err)) throw err2
+        throw new Error(
+          'این جیمیل قبلاً ثبت شده است اما رمز عبور درست نیست — از تب «وارد شدن» با رمز صحیح استفاده کنید.',
+        )
+      }
+    }
     throw new Error(friendlyError(err))
   }
 

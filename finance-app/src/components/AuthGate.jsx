@@ -11,6 +11,11 @@ export default function AuthGate({ onAuthed }) {
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
 
+  const switchMode = (m) => {
+    setMode(m)
+    setError('')
+  }
+
   const submit = async (e) => {
     e.preventDefault()
     setError('')
@@ -23,14 +28,14 @@ export default function AuthGate({ onAuthed }) {
       onAuthed(res.user)
     } catch (err) {
       setError(err.message || 'مشکلی پیش آمد — دوباره تلاش کنید.')
+      // If login failed because the account doesn't exist, offer one-click
+      // switch to the register tab (prevents "not signed in" dead-ends).
+      if (/ثبت نشده است/.test(err.message || '')) {
+        setTimeout(() => switchMode('register'), 1200)
+      }
     } finally {
       setBusy(false)
     }
-  }
-
-  const switchMode = (m) => {
-    setMode(m)
-    setError('')
   }
 
   return (
