@@ -14,7 +14,9 @@ export function toLatinDigits(str) {
 }
 
 export function parseAmount(str) {
-  const cleaned = toLatinDigits(String(str)).replace(/[^\d.-]/g, '')
+  // Keep only digits (after digit normalization); drop separators like ٬ , . - and any other chars
+  const cleaned = toLatinDigits(String(str)).replace(/\D/g, '')
+  if (!cleaned) return NaN
   const n = Number(cleaned)
   return Number.isFinite(n) ? n : NaN
 }

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { CalendarDays, ChevronRight, ChevronLeft } from 'lucide-react'
-import { toFa, isoToJalali, jalaliToISO, jalaliDaysInMonth, jalaliMonthName, jalaliToGregorian } from '../utils/persian'
+import { toFa, isoToJalali, jalaliToISO, jalaliDaysInMonth, jalaliMonthName, jalaliToGregorian, todayISO } from '../utils/persian'
 
 const WEEKDAYS = ['ش', 'ی', 'د', 'س', 'چ', 'پ', 'ج'] // شنبه … جمعه (first column = Saturday)
 
@@ -13,8 +13,9 @@ export default function JalaliDatePicker({ id, value, onChange }) {
   const wrapRef = useRef(null)
 
   const sel = value ? isoToJalali(value) : null
-  const [viewY, setViewY] = useState(sel?.jy ?? isoToJalali(new Date().toISOString().slice(0, 10)).jy)
-  const [viewM, setViewM] = useState(sel?.jm ?? isoToJalali(new Date().toISOString().slice(0, 10)).jm)
+  // Use Kabul-based today (UTC+4:30), not the device-timezone UTC date from toISOString()
+  const [viewY, setViewY] = useState(sel?.jy ?? isoToJalali(todayISO()).jy)
+  const [viewM, setViewM] = useState(sel?.jm ?? isoToJalali(todayISO()).jm)
 
   // sync view when an external value changes
   useEffect(() => {
@@ -57,7 +58,7 @@ export default function JalaliDatePicker({ id, value, onChange }) {
     setOpen(false)
   }
 
-  const todayJ = isoToJalali(new Date().toISOString().slice(0, 10))
+  const todayJ = isoToJalali(todayISO())
 
   const label = value ? `${toFa(sel.jd)} ${jalaliMonthName(sel.jm)} ${toFa(sel.jy)}` : 'انتخاب تاریخ'
 
