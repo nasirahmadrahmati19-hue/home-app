@@ -1,20 +1,23 @@
 // ---------- Firebase configuration (Auth + Firestore) ----------
-// Project: home-app-jalali  (Firebase console → Project settings → General → Your apps)
+// Project: myproject-707c8  (Firebase console → Project settings → General → Your apps)
 import { initializeApp } from 'firebase/app'
 import { getAuth } from 'firebase/auth'
 import { getFirestore } from 'firebase/firestore'
 
+// Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || 'AIzaSyDZK03QzqJnR0eS4gU7Yh1X2V9B8C6D5E4',
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || 'home-app-jalali.firebaseapp.com',
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || 'home-app-jalali',
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || 'home-app-jalali.firebasestorage.app',
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '123456789012',
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || '1:123456789012:web:abcdef123456',
-}
+  apiKey: "AIzaSyB_Ih73FJf6gTh6pQJlMemDD-FrDICY0pE",
+  authDomain: "myproject-707c8.firebaseapp.com",
+  projectId: "myproject-707c8",
+  storageBucket: "myproject-707c8.firebasestorage.app",
+  messagingSenderId: "922894348479",
+  appId: "1:922894348479:web:ec9d0cef19d6d5a4e7160a"
+};
 
 export const firebaseReady = Boolean(
-  firebaseConfig.apiKey && !firebaseConfig.apiKey.startsWith('['),
+  firebaseConfig.apiKey &&
+    !firebaseConfig.apiKey.startsWith('[') &&
+    !firebaseConfig.apiKey.includes('placeholder'),
 )
 
 const app = initializeApp(firebaseConfig)
