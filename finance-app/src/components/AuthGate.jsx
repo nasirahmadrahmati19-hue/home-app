@@ -1,18 +1,15 @@
 import { useState } from 'react'
-import { Wallet2, UserPlus, LogIn, Eye, EyeOff, Loader2, ShieldCheck } from 'lucide-react'
+import { Wallet2, UserPlus, LogIn, Eye, EyeOff, Loader2, ShieldCheck, AtSign } from 'lucide-react'
 import { registerUser, loginUser } from '../utils/auth'
 
 export default function AuthGate({ onAuthed }) {
-  const [mode, setMode] = useState('login') // 'login' | 'register'
+  const [mode, setMode] = useState('register') // 'register' | 'login'
   const [name, setName] = useState('')
-  const [username, setUsername] = useState('')
+  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPass, setShowPass] = useState(false)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
-
-  const hasUsers = typeof window !== 'undefined' &&
-    (() => { try { return JSON.parse(localStorage.getItem('finance_app_users') || '[]').length > 0 } catch { return false } })()
 
   const submit = async (e) => {
     e.preventDefault()
@@ -21,13 +18,11 @@ export default function AuthGate({ onAuthed }) {
     try {
       const res =
         mode === 'register'
-          ? await registerUser({ name, username, password })
-          : await loginUser({ username, password })
-      if (!res.ok) {
-        setError(res.error)
-      } else {
-        onAuthed(res.user)
-      }
+          ? await registerUser({ name, email, password })
+          : await loginUser({ email, password })
+      onAuthed(res.user)
+    } catch (err) {
+      setError(err.message || 'مشکلی پیش آمد — دوباره تلاش کنید.')
     } finally {
       setBusy(false)
     }
@@ -47,24 +42,13 @@ export default function AuthGate({ onAuthed }) {
             <Wallet2 size={30} strokeWidth={2.2} />
           </span>
           <h1 className="text-gradient text-2xl font-black tracking-tight">مدیریت مالی شخصی</h1>
-          <p className="t-muted text-[13px] font-bold">برای ورود، ابتدا ثبت‌نام کنید 🔒</p>
+          <p className="t-muted text-[13px] font-bold">ورد برنامه با جمیل — اول ثبت‌نام، بعد ورود 🔒</p>
         </div>
 
         {/* ---------- Card ---------- */}
         <div className="card-raised animate-fade-up px-6 py-7 sm:px-8" style={{ animationDelay: '0.1s' }}>
-          {/* tabs: login / register */}
+          {/* tabs: register / login */}
           <div className="inset-panel mb-6 grid grid-cols-2 p-1">
-            <button
-              type="button"
-              onClick={() => switchMode('login')}
-              className={`flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-black transition-all ${
-                mode === 'login'
-                  ? 'bg-gradient-to-l from-emerald-500 to-teal-500 text-white shadow-md'
-                  : 't-muted hover:text-white'
-              }`}
-            >
-              <LogIn size={16} /> وارد شدن
-            </button>
             <button
               type="button"
               onClick={() => switchMode('register')}
@@ -76,13 +60,24 @@ export default function AuthGate({ onAuthed }) {
             >
               <UserPlus size={16} /> ثبت‌نام
             </button>
+            <button
+              type="button"
+              onClick={() => switchMode('login')}
+              className={`flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-black transition-all ${
+                mode === 'login'
+                  ? 'bg-gradient-to-l from-emerald-500 to-teal-500 text-white shadow-md'
+                  : 't-muted hover:text-white'
+              }`}
+            >
+              <LogIn size={16} /> وارد شدن
+            </button>
           </div>
 
-          {/* first-time hint */}
-          {mode === 'login' && !hasUsers && (
-            <div className="mb-5 flex items-start gap-2 rounded-xl border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-[13px] font-bold text-amber-500">
+          {/* hint */}
+          {mode === 'login' && (
+            <div className="mb-5 flex items-start gap-2 rounded-xl border border-teal-400/30 bg-teal-400/10 px-4 py-3 text-[13px] font-bold text-teal-500">
               <ShieldCheck size={18} className="mt-0.5 shrink-0" />
-              هنوز کاربری ثبت نشده است — اول از سرِ «ثبت‌نام» یک حساب بسازید.
+              اگر هنوز حساب ندارید، از تب «ثبت‌نام» با جیمیل خود حساب بسازید.
             </div>
           )}
 
@@ -95,23 +90,29 @@ export default function AuthGate({ onAuthed }) {
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="مثلاً احمد"
+                  placeholder="مثلاً احمد رضا"
                   autoComplete="name"
                 />
               </div>
             )}
 
             <div>
-              <label className="t-body mb-1.5 block text-[13px] font-black">نام کاربری</label>
-              <input
-                className="field-input w-full"
-                type="text"
-                dir="ltr"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="ahmad123"
-                autoComplete="username"
-              />
+              <label className="t-body mb-1.5 block text-[13px] font-black">جیمیل (Gmail)</label>
+              <div className="relative">
+                <AtSign size={16} className="t-faint absolute right-3 top-1/2 -translate-y-1/2" />
+                <input
+                  className="field-input w-full pr-10"
+                  type="email"
+                  dir="ltr"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="yourname@gmail.com"
+                  autoComplete="email"
+                />
+              </div>
+              {mode === 'register' && (
+                <p className="t-faint mt-1.5 text-[11px] font-bold">فقط نشانی‌های @gmail.com پذیرفته می‌شوند</p>
+              )}
             </div>
 
             <div>
@@ -137,7 +138,7 @@ export default function AuthGate({ onAuthed }) {
                 </button>
               </div>
               {mode === 'register' && (
-                <p className="t-faint mt-1.5 text-[11px] font-bold">حداقل ۴ رقم — فقط روی همین دستگاه ذخیره می‌شود</p>
+                <p className="t-faint mt-1.5 text-[11px] font-bold">حداقل ۶ رقم — رمز شما هش شده نگهداری می‌شود</p>
               )}
             </div>
 
@@ -156,18 +157,18 @@ export default function AuthGate({ onAuthed }) {
                 <Loader2 size={18} className="animate-spin" />
               ) : mode === 'register' ? (
                 <>
-                  <UserPlus size={18} /> ساخت حساب و ورود
+                  <UserPlus size={18} /> ثبت‌نام با جیمیل و ورود
                 </>
               ) : (
                 <>
-                  <LogIn size={18} /> وارد شدن
+                  <LogIn size={18} /> وارد شدن با جیمیل
                 </>
               )}
             </button>
           </form>
 
           <p className="t-faint mt-5 text-center text-[11px] font-bold">
-            🇦🇫 نام‌های کاربری و رمزها فقط در حافظه همین دستگاه نگهداری می‌شوند
+            ☁️ ثبت‌نام‌ها در سرور اشتراکی جمیل (jamil.shop) نگهداری می‌شوند — هر کس با جیمیل خود وارد شود
           </p>
         </div>
       </div>

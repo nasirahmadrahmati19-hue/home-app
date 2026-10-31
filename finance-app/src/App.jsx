@@ -111,7 +111,12 @@ function FinanceApp({ user, onLogout }) {
             <div className="flex flex-wrap items-center gap-3">
               <div className="inset-panel flex items-center gap-2 px-4 py-2.5 text-sm font-bold t-body">
                 <UserRound size={16} className="acc-cyan" />
-                <span>{user.name}</span>
+                <span title={user.email}>{user.name}</span>
+                {user.email && (
+                  <span dir="ltr" className="t-faint hidden text-[11px] font-bold sm:inline">
+                    {user.email}
+                  </span>
+                )}
                 <button
                   type="button"
                   onClick={onLogout}
