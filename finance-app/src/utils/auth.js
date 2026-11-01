@@ -30,7 +30,7 @@ function friendlyError(err) {
     case 'auth/invalid-email':
       return 'نشانی ایمیل معتبر نیست.'
     case 'auth/email-already-in-use':
-      return 'این جیمیل قبلاً ثبت شده است — از تب «وارد شدن» استفاده کنید.'
+      return 'این جیمیل قبلاً ثبت شده است — با همان رمز عبور دوباره تلاش کنید (همین فرم هم ورود و هم ثبت‌نام را انجام می‌دهد).'
     case 'auth/weak-password':
       return 'رمز عبور باید حداقل ۶ رقم باشد.'
     case 'auth/user-not-found':

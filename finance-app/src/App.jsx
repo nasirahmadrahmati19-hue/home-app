@@ -67,7 +67,16 @@ export default function App() {
     }
   }
 
-  if (authState === 'loading') return <Splash text="در حال برقراری ارتباط با سرور جمیل…" />
+  // Build version marker — visible in console so users can confirm they are
+  // NOT looking at a stale/cached deployment.
+  useEffect(() => {
+    console.log(
+      '%c[home-app build 2026-11-01-a] Firebase project: newapp-2026 | single one-click auth form',
+      'background:#0d9488;color:#fff;padding:4px 8px;border-radius:6px;font-weight:bold',
+    )
+  }, [])
+
+  if (authState === 'loading') return <Splash text="در حال برقراری ارتباط با سرور…" />
 
   if (authState === 'missing-config') {
     return (
