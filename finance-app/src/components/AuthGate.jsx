@@ -1,40 +1,50 @@
 import { useState } from 'react'
-import { Wallet2, UserPlus, LogIn, Eye, EyeOff, Loader2, ShieldCheck, AtSign } from 'lucide-react'
-import { registerUser, loginUser } from '../utils/auth'
+import { Wallet2, UserPlus, Eye, EyeOff, Loader2, ShieldCheck, AtSign } from 'lucide-react'
+import { registerOrSignIn, resetPassword } from '../utils/auth'
 
 export default function AuthGate({ onAuthed }) {
-  const [mode, setMode] = useState('register') // 'register' | 'login'
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPass, setShowPass] = useState(false)
   const [error, setError] = useState('')
+  const [info, setInfo] = useState('')
   const [busy, setBusy] = useState(false)
+  const [resetBusy, setResetBusy] = useState(false)
 
-  const switchMode = (m) => {
-    setMode(m)
-    setError('')
-  }
-
+  // ONE form for everyone: if the gmail is not registered yet it creates the
+  // account and signs in; if it is registered it signs in with that password.
+  // There are no more «ثبت‌نام/وارد شدن» tabs and no dead-loop messages.
   const submit = async (e) => {
     e.preventDefault()
     setError('')
+    setInfo('')
     setBusy(true)
     try {
-      const res =
-        mode === 'register'
-          ? await registerUser({ name, email, password })
-          : await loginUser({ email, password })
+      const res = await registerOrSignIn({ name, email, password })
       onAuthed(res.user)
     } catch (err) {
       setError(err.message || 'مشکلی پیش آمد — دوباره تلاش کنید.')
-      // If login failed because the account doesn't exist, offer one-click
-      // switch to the register tab (prevents "not signed in" dead-ends).
-      if (/ثبت نشده است/.test(err.message || '')) {
-        setTimeout(() => switchMode('register'), 1200)
-      }
     } finally {
       setBusy(false)
+    }
+  }
+
+  const doReset = async () => {
+    setError('')
+    setInfo('')
+    if (!email.trim()) {
+      setError('برای بازیابی رمز، ابتدا جیمیل خود را در فیلد بالا وارد کنید.')
+      return
+    }
+    setResetBusy(true)
+    try {
+      await resetPassword(email)
+      setInfo('✅ لینک تغییر رمز عبور برای شما ایمیل شد — صندوق جیمیل خود را بررسی کنید.')
+    } catch (err) {
+      setError(err.message || 'بازیابی رمز ممکن نشد.')
+    } finally {
+      setResetBusy(false)
     }
   }
 
@@ -47,59 +57,28 @@ export default function AuthGate({ onAuthed }) {
             <Wallet2 size={30} strokeWidth={2.2} />
           </span>
           <h1 className="text-gradient text-2xl font-black tracking-tight">مدیریت مالی شخصی</h1>
-          <p className="t-muted text-[13px] font-bold">ورد برنامه با جمیل — اول ثبت‌نام، بعد ورود 🔒</p>
+          <p className="t-muted text-[13px] font-bold">با جیمیل خود ثبت‌نام یا وارد شوید 🔒</p>
         </div>
 
         {/* ---------- Card ---------- */}
         <div className="card-raised animate-fade-up px-6 py-7 sm:px-8" style={{ animationDelay: '0.1s' }}>
-          {/* tabs: register / login */}
-          <div className="inset-panel mb-6 grid grid-cols-2 p-1">
-            <button
-              type="button"
-              onClick={() => switchMode('register')}
-              className={`flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-black transition-all ${
-                mode === 'register'
-                  ? 'bg-gradient-to-l from-emerald-500 to-teal-500 text-white shadow-md'
-                  : 't-muted hover:text-white'
-              }`}
-            >
-              <UserPlus size={16} /> ثبت‌نام
-            </button>
-            <button
-              type="button"
-              onClick={() => switchMode('login')}
-              className={`flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-black transition-all ${
-                mode === 'login'
-                  ? 'bg-gradient-to-l from-emerald-500 to-teal-500 text-white shadow-md'
-                  : 't-muted hover:text-white'
-              }`}
-            >
-              <LogIn size={16} /> وارد شدن
-            </button>
+          <div className="mb-5 flex items-start gap-2 rounded-xl border border-teal-400/30 bg-teal-400/10 px-4 py-3 text-[13px] font-bold text-teal-500">
+            <ShieldCheck size={18} className="mt-0.5 shrink-0" />
+            یک فرم ساده: اگر بار اول است، حساب شما ساخته و مستقیم وارد می‌شوید؛ اگر قبلاً ثبت‌نام کرده‌اید، با همان جیمیل و رمز وارد می‌شوید.
           </div>
 
-          {/* hint */}
-          {mode === 'login' && (
-            <div className="mb-5 flex items-start gap-2 rounded-xl border border-teal-400/30 bg-teal-400/10 px-4 py-3 text-[13px] font-bold text-teal-500">
-              <ShieldCheck size={18} className="mt-0.5 shrink-0" />
-              اگر هنوز حساب ندارید، از تب «ثبت‌نام» با جیمیل خود حساب بسازید.
-            </div>
-          )}
-
           <form onSubmit={submit} className="space-y-4">
-            {mode === 'register' && (
-              <div>
-                <label className="t-body mb-1.5 block text-[13px] font-black">نام شما</label>
-                <input
-                  className="field-input w-full"
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="مثلاً احمد رضا"
-                  autoComplete="name"
-                />
-              </div>
-            )}
+            <div>
+              <label className="t-body mb-1.5 block text-[13px] font-black">نام شما</label>
+              <input
+                className="field-input w-full"
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="مثلاً احمد رضا"
+                autoComplete="name"
+              />
+            </div>
 
             <div>
               <label className="t-body mb-1.5 block text-[13px] font-black">جیمیل (Gmail)</label>
@@ -115,9 +94,7 @@ export default function AuthGate({ onAuthed }) {
                   autoComplete="email"
                 />
               </div>
-              {mode === 'register' && (
-                <p className="t-faint mt-1.5 text-[11px] font-bold">فقط نشانی‌های @gmail.com پذیرفته می‌شوند</p>
-              )}
+              <p className="t-faint mt-1.5 text-[11px] font-bold">فقط نشانی‌های @gmail.com پذیرفته می‌شوند</p>
             </div>
 
             <div>
@@ -130,7 +107,7 @@ export default function AuthGate({ onAuthed }) {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••"
-                  autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
+                  autoComplete="current-password"
                 />
                 <button
                   type="button"
@@ -142,14 +119,17 @@ export default function AuthGate({ onAuthed }) {
                   {showPass ? <EyeOff size={17} /> : <Eye size={17} />}
                 </button>
               </div>
-              {mode === 'register' && (
-                <p className="t-faint mt-1.5 text-[11px] font-bold">حداقل ۶ رقم — رمز شما هش شده نگهداری می‌شود</p>
-              )}
+              <p className="t-faint mt-1.5 text-[11px] font-bold">حداقل ۶ رقم — اگر رمز را فراموش کردید، از لینک پایین استفاده کنید</p>
             </div>
 
             {error && (
               <div className="rounded-xl border border-rose-400/30 bg-rose-500/10 px-4 py-2.5 text-[13px] font-black text-rose-400 animate-fade-up">
                 {error}
+              </div>
+            )}
+            {info && (
+              <div className="rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-2.5 text-[13px] font-black text-emerald-400 animate-fade-up">
+                {info}
               </div>
             )}
 
@@ -160,20 +140,25 @@ export default function AuthGate({ onAuthed }) {
             >
               {busy ? (
                 <Loader2 size={18} className="animate-spin" />
-              ) : mode === 'register' ? (
-                <>
-                  <UserPlus size={18} /> ثبت‌نام با جیمیل و ورود
-                </>
               ) : (
                 <>
-                  <LogIn size={18} /> وارد شدن با جیمیل
+                  <UserPlus size={18} /> ثبت‌نام / ورود با جیمیل
                 </>
               )}
             </button>
           </form>
 
+          <button
+            type="button"
+            onClick={doReset}
+            disabled={resetBusy}
+            className="t-faint mt-4 block w-full text-center text-[12px] font-bold underline-offset-4 hover:text-teal-400 hover:underline transition-colors disabled:opacity-60"
+          >
+            {resetBusy ? 'در حال ارسال ایمیل…' : '🔑 رمز عبورم را فراموش کرده‌ام'}
+          </button>
+
           <p className="t-faint mt-5 text-center text-[11px] font-bold">
-            ☁️ ثبت‌نام‌ها در سرور اشتراکی جمیل (jamil.shop) نگهداری می‌شوند — هر کس با جیمیل خود وارد شود
+            ☁️ حساب‌ها روی Firebase نگهداری می‌شوند — هر کس با جیمیل خود از هر دستگاهی وارد شود
           </p>
         </div>
       </div>

@@ -10,9 +10,9 @@ import {
   signOut,
   updateProfile,
   onAuthStateChanged,
-  fetchSignInMethodsForEmail,
+  sendPasswordResetEmail,
 } from 'firebase/auth'
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore'
+import { doc, getDoc, setDoc } from 'firebase/firestore'
 import { auth, db } from '../lib/firebase'
 
 export function isGmail(email) {
@@ -52,8 +52,33 @@ function friendlyError(err) {
   }
 }
 
-// ---------- register (name + gmail + password) via Firebase Auth ----------
-export async function registerUser({ name, email, password }) {
+// Build the returned user object and best-effort sync the Firestore profile.
+async function finalizeUser(user, cleanName, cleanEmail) {
+  try {
+    if (cleanName && user.displayName !== cleanName) {
+      await updateProfile(user, { displayName: cleanName })
+    }
+  } catch {
+    /* non-fatal */
+  }
+  try {
+    await setDoc(
+      doc(db, 'users', user.uid),
+      { name: cleanName || user.displayName || cleanEmail.split('@')[0], email: cleanEmail },
+      { merge: true },
+    )
+  } catch {
+    /* non-fatal: rules may not allow it yet; session still valid */
+  }
+  return { uid: user.uid, name: cleanName || user.displayName || cleanEmail.split('@')[0], email: cleanEmail }
+}
+
+// ---------- one-click register OR sign in (name + gmail + password) ----------
+// This is what the AuthGate submit button calls. It NEVER produces the old
+// dead-loop ("already registered" → "you are not signed in"): if the email
+// exists, we sign in with the given password right here; if it doesn't, we
+// create the account and the user is signed in immediately either way.
+export async function registerOrSignIn({ name, email, password }) {
   const cleanName = (name || '').trim()
   const cleanEmail = normalizeEmail(email)
 
@@ -63,64 +88,45 @@ export async function registerUser({ name, email, password }) {
   if ((password || '').length < 6)
     throw new Error('رمز عبور باید حداقل ۶ رقم باشد.')
 
-  let cred
   try {
-    cred = await createUserWithEmailAndPassword(auth, cleanEmail, password)
+    const cred = await createUserWithEmailAndPassword(auth, cleanEmail, password)
+    const user = await finalizeUser(cred.user, cleanName, cleanEmail)
+    return { ok: true, created: true, user }
   } catch (err) {
-    // If the email is already registered, verify the SAME credentials work on
-    // the login path before telling the user to use «وارد شدن» — this prevents
-    // the dead-loop of "already registered" followed by "not signed in".
-    if ((err && err.code) === 'auth/email-already-in-use') {
-      let methods = []
-      try {
-        methods = await fetchSignInMethodsForEmail(auth, cleanEmail)
-      } catch {
-        /* non-fatal */
-      }
-      if (methods.length > 0 && !methods.includes('password')) {
-        throw new Error(
-          `این جیمیل قبلاً با روش دیگری (${methods.join(', ')}) ثبت شده است و با رمز عبور وارد نمی‌شود.`,
-        )
-      }
+    const code = err && err.code
+    if (code === 'auth/email-already-in-use') {
+      // Account exists — try to sign in with the SAME password now.
       try {
         const lcred = await signInWithEmailAndPassword(auth, cleanEmail, password)
-        return {
-          ok: true,
-          alreadyRegistered: true,
-          user: { uid: lcred.user.uid, name: cleanName, email: cleanEmail },
-        }
+        const user = await finalizeUser(lcred.user, cleanName, cleanEmail)
+        return { ok: true, alreadyRegistered: true, user }
       } catch (err2) {
-        if (err2.message && err2.message !== friendlyError(err)) throw err2
-        throw new Error(
-          'این جیمیل قبلاً ثبت شده است اما رمز عبور درست نیست — از تب «وارد شدن» با رمز صحیح استفاده کنید.',
-        )
+        const code2 = err2 && err2.code
+        if (code2 === 'auth/wrong-password' || code2 === 'auth/invalid-credential') {
+          throw new Error(
+            'این جیمیل قبلاً ثبت شده است، اما این رمز عبور برای آن درست نیست. رمز صحیح را وارد کنید یا از «بازیابی رمز عبور» استفاده نمایید.',
+          )
+        }
+        if (code2 === 'auth/too-many-requests') {
+          throw new Error('چند بار تلاش کردید — کمی صبر کنید و دوباره امتحان کنید.')
+        }
+        throw new Error(friendlyError(err2))
       }
+    }
+    if (code === 'auth/weak-password') {
+      throw new Error('رمز عبور باید حداقل ۶ رقم باشد.')
     }
     throw new Error(friendlyError(err))
   }
+}
 
-  try {
-    await updateProfile(cred.user, { displayName: cleanName })
-  } catch {
-    /* non-fatal */
-  }
-
-  // Profile document in Firestore: users/{uid}
-  try {
-    await setDoc(doc(db, 'users', cred.user.uid), {
-      name: cleanName,
-      email: cleanEmail,
-      createdAt: serverTimestamp(),
-    })
-  } catch (err) {
-    throw new Error(friendlyError(err))
-  }
-
-  return { ok: true, user: { uid: cred.user.uid, name: cleanName, email: cleanEmail } }
+// ---------- register (kept for API compatibility) ----------
+export async function registerUser(params) {
+  return registerOrSignIn(params)
 }
 
 // ---------- login via Firebase Auth ----------
-export async function loginUser({ email, password }) {
+export async function loginUser({ name, email, password }) {
   const cleanEmail = normalizeEmail(email)
   if (!cleanEmail || !password) throw new Error('جیمیل و رمز عبور را وارد کنید.')
 
@@ -128,23 +134,43 @@ export async function loginUser({ email, password }) {
   try {
     cred = await signInWithEmailAndPassword(auth, cleanEmail, password)
   } catch (err) {
+    const code = err && err.code
+    // If this project has no such account yet, create it on the spot so the
+    // user is never stuck between "not registered" and "not signed in".
+    if (code === 'auth/user-not-found' || code === 'auth/invalid-credential') {
+      try {
+        const ncred = await createUserWithEmailAndPassword(auth, cleanEmail, password)
+        const user = await finalizeUser(ncred.user, (name || '').trim(), cleanEmail)
+        return { ok: true, created: true, user }
+      } catch (err2) {
+        if (err2 && err2.code === 'auth/email-already-in-use') {
+          throw new Error(
+            'این جیمیل ثبت شده است اما رمز عبور درست نیست. رمز صحیح را وارد کنید یا از «بازیابی رمز عبور» استفاده نمایید.',
+          )
+        }
+        throw new Error(friendlyError(err2))
+      }
+    }
     throw new Error(friendlyError(err))
   }
 
-  const name = cred.user.displayName || cleanEmail.split('@')[0]
+  const user = await finalizeUser(cred.user, (name || '').trim(), cleanEmail)
+  return { ok: true, user }
+}
 
-  // Best-effort: keep the profile document up to date.
+// ---------- password reset ----------
+
+export async function resetPassword(email) {
+  const cleanEmail = normalizeEmail(email)
+  if (!cleanEmail) throw new Error('ابتدا جیمیل خود را وارد کنید.')
   try {
-    await setDoc(
-      doc(db, 'users', cred.user.uid),
-      { name, email: cleanEmail, lastLoginAt: serverTimestamp() },
-      { merge: true },
-    )
-  } catch {
-    /* non-fatal */
+    await sendPasswordResetEmail(auth, cleanEmail)
+  } catch (err) {
+    if (err && err.code === 'auth/user-not-found') {
+      throw new Error('این جیمیل در برنامه ثبت نشده است — اول «ثبت‌نام» کنید.')
+    }
+    throw new Error(friendlyError(err))
   }
-
-  return { ok: true, user: { uid: cred.user.uid, name, email: cleanEmail } }
 }
 
 // ---------- logout ----------
