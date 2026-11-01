@@ -90,17 +90,24 @@ export async function registerOrSignIn({ name, email, password }) {
 
   try {
     const cred = await createUserWithEmailAndPassword(auth, cleanEmail, password)
+    console.log('[auth] ✅ account created:', cleanEmail, '| project:', auth?.app?.options?.projectId)
     const user = await finalizeUser(cred.user, cleanName, cleanEmail)
     return { ok: true, created: true, user }
   } catch (err) {
+    console.error('🔥 FIREBASE AUTH ERROR CODE:', err && err.code)
+    console.error('🔥 FIREBASE AUTH ERROR MESSAGE:', err && err.message)
+    console.error('🔥 Firebase project in use:', auth?.app?.options?.projectId, '| apiKey:', auth?.app?.options?.apiKey?.slice(0, 12) + '…')
     const code = err && err.code
     if (code === 'auth/email-already-in-use') {
       // Account exists — try to sign in with the SAME password now.
       try {
         const lcred = await signInWithEmailAndPassword(auth, cleanEmail, password)
+        console.log('[auth] ✅ signed in existing account:', cleanEmail)
         const user = await finalizeUser(lcred.user, cleanName, cleanEmail)
         return { ok: true, alreadyRegistered: true, user }
       } catch (err2) {
+        console.error('🔥 SIGN-IN FOLLOW-UP ERROR CODE:', err2 && err2.code)
+        console.error('🔥 SIGN-IN FOLLOW-UP ERROR MESSAGE:', err2 && err2.message)
         const code2 = err2 && err2.code
         if (code2 === 'auth/wrong-password' || code2 === 'auth/invalid-credential') {
           throw new Error(
