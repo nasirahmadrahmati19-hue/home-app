@@ -1,16 +1,16 @@
 // ---------- Firebase Auth — the entry gate of the app ----------
-// Every person registers with their Gmail address (@gmail.com) + a password
-// through Firebase Authentication (createUserWithEmailAndPassword), and only
-// after that can they enter the app. There is NO localStorage involved:
-// sessions are kept by Firebase itself (browser session persistence).
+// Login is passwordless: the user only enters their Gmail address and a
+// magic sign-in link is sent to that inbox via Firebase Email Link
+// (sendSignInLinkToEmail + signInWithEmailLink). There is NO password field
+// and NO localStorage-based sessions: auth state is kept by Firebase itself.
 
 import {
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
+  sendSignInLinkToEmail,
+  isSignInWithEmailLink,
+  signInWithEmailLink,
   signOut,
   updateProfile,
   onAuthStateChanged,
-  sendPasswordResetEmail,
 } from 'firebase/auth'
 import { doc, getDoc, setDoc } from 'firebase/firestore'
 import { auth, db } from '../lib/firebase'
@@ -23,27 +23,23 @@ function normalizeEmail(email) {
   return (email || '').trim().toLowerCase()
 }
 
+const EMAIL_KEY = 'authEmailForLink'
+
 // Human-readable Persian messages for Firebase error codes.
 function friendlyError(err) {
   const code = err && (err.code || '')
   switch (code) {
     case 'auth/invalid-email':
       return 'نشانی ایمیل معتبر نیست.'
-    case 'auth/email-already-in-use':
-      return 'این جیمیل قبلاً ثبت شده است — با همان رمز عبور دوباره تلاش کنید (همین فرم هم ورود و هم ثبت‌نام را انجام می‌دهد).'
-    case 'auth/weak-password':
-      return 'رمز عبور باید حداقل ۶ رقم باشد.'
-    case 'auth/user-not-found':
-    case 'auth/invalid-credential':
-      return 'این جیمیل ثبت نشده است — اول «ثبت‌نام» کنید.'
-    case 'auth/wrong-password':
-      return 'رمز عبور اشتباه است.'
+    case 'auth/invalid-action-code':
+    case 'auth/expired-action-code':
+      return 'لینک ورود نامعتبر یا منقضی شده است — دوباره درخواست لینک جدید بدهید.'
     case 'auth/too-many-requests':
       return 'چند بار تلاش کردید — کمی صبر کنید و دوباره امتحان کنید.'
     case 'auth/network-request-failed':
       return 'اتصال اینترنتی برقرار نیست — برای ورود به سرور نیاز به اینترنت دارید.'
     case 'auth/configuration-not-found':
-      return 'ورود با ایمیل در کنسول Firebase فعال نیست — بخش Authentication → Sign-in method را باز کنید.'
+      return 'ورود با لینک ایمیلی در کنسول Firebase فعال نیست — بخش Authentication → Sign-in method → Email link را روشن کنید.'
     default:
       if (/network/i.test(err && err.message)) {
         return 'اتصال اینترنتی برقرار نیست — برای ورود به سرور نیاز به اینترنت دارید.'
@@ -73,111 +69,79 @@ async function finalizeUser(user, cleanName, cleanEmail) {
   return { uid: user.uid, name: cleanName || user.displayName || cleanEmail.split('@')[0], email: cleanEmail }
 }
 
-// ---------- one-click register OR sign in (name + gmail + password) ----------
-// This is what the AuthGate submit button calls. It NEVER produces the old
-// dead-loop ("already registered" → "you are not signed in"): if the email
-// exists, we sign in with the given password right here; if it doesn't, we
-// create the account and the user is signed in immediately either way.
-export async function registerOrSignIn({ name, email, password }) {
+// The action URL settings for the magic sign-in link.
+function emailLinkSettings() {
+  return {
+    url: typeof window !== 'undefined' ? window.location.origin : '',
+    handleCodeInApp: true,
+  }
+}
+
+// ---------- send the magic sign-in link (passwordless) ----------
+export async function sendLoginLink({ name, email }) {
   const cleanName = (name || '').trim()
   const cleanEmail = normalizeEmail(email)
 
   if (!cleanName) throw new Error('نام خود را وارد کنید.')
   if (!isGmail(cleanEmail))
-    throw new Error('برای ثبت‌نام باید نشانی جیمیل (…@gmail.com) داشته باشید.')
-  if ((password || '').length < 6)
-    throw new Error('رمز عبور باید حداقل ۶ رقم باشد.')
+    throw new Error('برای ورود باید نشانی جیمیل (…@gmail.com) داشته باشید.')
 
   try {
-    const cred = await createUserWithEmailAndPassword(auth, cleanEmail, password)
-    console.log('[auth] ✅ account created:', cleanEmail, '| project:', auth?.app?.options?.projectId)
-    const user = await finalizeUser(cred.user, cleanName, cleanEmail)
-    return { ok: true, created: true, user }
+    await sendSignInLinkToEmail(auth, cleanEmail, emailLinkSettings())
+    // Remember which address the link was requested for, so that when the
+    // user clicks the link (possibly in another tab) we can complete sign-in.
+    try {
+      window.localStorage.setItem(EMAIL_KEY, cleanEmail)
+    } catch {
+      /* storage may be unavailable; sign-in still works if same tab */
+    }
+    console.log('[auth] ✉️ sign-in link sent to:', cleanEmail)
+    return { ok: true, sent: true, email: cleanEmail }
   } catch (err) {
     console.error('🔥 FIREBASE AUTH ERROR CODE:', err && err.code)
     console.error('🔥 FIREBASE AUTH ERROR MESSAGE:', err && err.message)
-    console.error('🔥 Firebase project in use:', auth?.app?.options?.projectId, '| apiKey:', auth?.app?.options?.apiKey?.slice(0, 12) + '…')
-    const code = err && err.code
-    if (code === 'auth/email-already-in-use') {
-      // Account exists — try to sign in with the SAME password now.
-      try {
-        const lcred = await signInWithEmailAndPassword(auth, cleanEmail, password)
-        console.log('[auth] ✅ signed in existing account:', cleanEmail)
-        const user = await finalizeUser(lcred.user, cleanName, cleanEmail)
-        return { ok: true, alreadyRegistered: true, user }
-      } catch (err2) {
-        console.error('🔥 SIGN-IN FOLLOW-UP ERROR CODE:', err2 && err2.code)
-        console.error('🔥 SIGN-IN FOLLOW-UP ERROR MESSAGE:', err2 && err2.message)
-        const code2 = err2 && err2.code
-        if (code2 === 'auth/wrong-password' || code2 === 'auth/invalid-credential') {
-          throw new Error(
-            'این جیمیل قبلاً ثبت شده است، اما این رمز عبور برای آن درست نیست. رمز صحیح را وارد کنید یا از «بازیابی رمز عبور» استفاده نمایید.',
-          )
-        }
-        if (code2 === 'auth/too-many-requests') {
-          throw new Error('چند بار تلاش کردید — کمی صبر کنید و دوباره امتحان کنید.')
-        }
-        throw new Error(friendlyError(err2))
-      }
-    }
-    if (code === 'auth/weak-password') {
-      throw new Error('رمز عبور باید حداقل ۶ رقم باشد.')
-    }
     throw new Error(friendlyError(err))
   }
 }
 
-// ---------- register (kept for API compatibility) ----------
-export async function registerUser(params) {
-  return registerOrSignIn(params)
-}
+// ---------- complete sign-in when the URL contains the email link ----------
+export async function completeSignInFromLink(name) {
+  if (typeof window === 'undefined' || !auth) return null
+  if (!isSignInWithEmailLink(auth, window.location.href)) return null
 
-// ---------- login via Firebase Auth ----------
-export async function loginUser({ name, email, password }) {
-  const cleanEmail = normalizeEmail(email)
-  if (!cleanEmail || !password) throw new Error('جیمیل و رمز عبور را وارد کنید.')
-
-  let cred
+  let email = ''
   try {
-    cred = await signInWithEmailAndPassword(auth, cleanEmail, password)
-  } catch (err) {
-    const code = err && err.code
-    // If this project has no such account yet, create it on the spot so the
-    // user is never stuck between "not registered" and "not signed in".
-    if (code === 'auth/user-not-found' || code === 'auth/invalid-credential') {
-      try {
-        const ncred = await createUserWithEmailAndPassword(auth, cleanEmail, password)
-        const user = await finalizeUser(ncred.user, (name || '').trim(), cleanEmail)
-        return { ok: true, created: true, user }
-      } catch (err2) {
-        if (err2 && err2.code === 'auth/email-already-in-use') {
-          throw new Error(
-            'این جیمیل ثبت شده است اما رمز عبور درست نیست. رمز صحیح را وارد کنید یا از «بازیابی رمز عبور» استفاده نمایید.',
-          )
-        }
-        throw new Error(friendlyError(err2))
-      }
-    }
-    throw new Error(friendlyError(err))
+    email = window.localStorage.getItem(EMAIL_KEY) || ''
+  } catch {
+    /* ignore */
   }
+  if (!email) return null // user must re-enter their gmail and request a link
 
+  const cred = await signInWithEmailLink(auth, email, window.location.href)
+  try {
+    window.localStorage.removeItem(EMAIL_KEY)
+  } catch {
+    /* ignore */
+  }
+  const cleanEmail = normalizeEmail(email)
   const user = await finalizeUser(cred.user, (name || '').trim(), cleanEmail)
+  // Clean the magic-link query params out of the address bar.
+  try {
+    window.history.replaceState({}, '', window.location.origin + window.location.pathname)
+  } catch {
+    /* ignore */
+  }
+  console.log('[auth] ✅ signed in via email link:', cleanEmail)
   return { ok: true, user }
 }
 
-// ---------- password reset ----------
+// Kept for API compatibility with older call-sites (no password anymore).
+export async function registerOrSignIn({ name, email }) {
+  return sendLoginLink({ name, email })
+}
 
-export async function resetPassword(email) {
-  const cleanEmail = normalizeEmail(email)
-  if (!cleanEmail) throw new Error('ابتدا جیمیل خود را وارد کنید.')
-  try {
-    await sendPasswordResetEmail(auth, cleanEmail)
-  } catch (err) {
-    if (err && err.code === 'auth/user-not-found') {
-      throw new Error('این جیمیل در برنامه ثبت نشده است — اول «ثبت‌نام» کنید.')
-    }
-    throw new Error(friendlyError(err))
-  }
+export async function loginUser({ name, email }) {
+  return sendLoginLink({ name, email })
 }
 
 // ---------- logout ----------
@@ -185,7 +149,7 @@ export async function logout() {
   await signOut(auth)
 }
 
-// ---------- live session listener (replaces getSession/currentUser) ----------
+// ---------- live session listener ----------
 export function subscribeAuth(callback) {
   return onAuthStateChanged(auth, (fu) => {
     callback(
