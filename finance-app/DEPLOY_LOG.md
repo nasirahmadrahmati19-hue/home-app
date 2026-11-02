@@ -1,2 +1,3 @@
 - [x] passwordless login deployed
 - [x] verified: Vercel Git integration works (auto-deploy 3f863fb -> home-app-x73x.vercel.app, build index-ClviRaqD.js)
+- [x] final: latest push 4ac4283 live on home-app-x73x.vercel.app (index-ClviRaqD.js). Old URL 3eivx4rxe is a pinned snapshot and stays old.
