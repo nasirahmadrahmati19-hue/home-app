@@ -1,1 +1,2 @@
 - [x] passwordless login deployed
+- [x] verified: Vercel Git integration works (auto-deploy 3f863fb -> home-app-x73x.vercel.app, build index-ClviRaqD.js)
