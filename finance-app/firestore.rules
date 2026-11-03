@@ -1,25 +1,93 @@
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Deny everything by default
-    match /{document=**} {
-      allow read, write: if false;
+    // =========================
+    // توابع کمکی
+    // =========================
+
+    // آیا کاربر وارد حساب شده است؟
+    function isSignedIn() {
+      return request.auth != null;
     }
 
-    // User profile document: only the owner (authenticated with their own uid)
+    // آیا کاربر مدیر اصلی است؟ (ایمیل + لیست allowList در /meta/admin)
+    // نکته: اگر سند meta/admin وجود نداشت، خطا نده — فقط ایمیل چک شود.
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.token.email == "nasirahmadrahmati19@gmail.com" ||
+        (exists(/databases/$(database)/documents/meta/admin) &&
+         request.auth.uid in get(/databases/$(database)/documents/meta/admin).data.allowList)
+      );
+    }
+
+    // آیا کاربر می‌تواند سند پروفایل اولیه خود را بسازد؟
+    function isNewSelfProfile(userId) {
+      return isSignedIn()
+        && request.auth.uid == userId
+        && !exists(/databases/$(database)/documents/users/$(userId));
+    }
+
+    // آیا کاربر صاحب این UID است؟
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // =========================
+    // ⭐ داده‌های ایزوله شده هر کاربر ⭐
+    // =========================
+    match /users/{userId}/{document=**} {
+      allow read, write: if isOwner(userId) || isAdmin();
+    }
+
+    // =========================
+    // اطلاعات پروفایل کاربر
+    // =========================
     match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read: if isOwner(userId) || isAdmin();
+      // 🔓 ثبت‌نام عادی بدون نیاز به تأیید مدیر
+      allow create: if isOwner(userId) || isNewSelfProfile(userId);
+      allow update: if isOwner(userId) || isAdmin();
+      allow delete: if isAdmin();
+    }
 
-      // Income entries — private to the signed-in owner
-      match /incomes/{entryId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
-      }
+    // =========================
+    // تنظیمات عمومی (نرخ ارز و...)
+    // =========================
+    match /settings/{docId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
 
-      // Expense entries — private to the signed-in owner
-      match /expenses/{entryId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
-      }
+    // =========================
+    // مسیر قدیمی appData
+    // =========================
+    match /appData/{documentId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // =========================
+    // سند متادیتا (لیست مدیران) — فقط ادمین
+    // =========================
+    match /meta/{docId} {
+      allow read, write: if isAdmin();
+    }
+
+    // =========================
+    // کالکشن‌های قدیمی در ریشه (فقط ادمین)
+    // =========================
+    match /customers/{documentId}    { allow read, write: if isAdmin(); }
+    match /transactions/{documentId} { allow read, write: if isAdmin(); }
+    match /cash_entries/{documentId} { allow read, write: if isAdmin(); }
+    match /hawalas/{documentId}      { allow read, write: if isAdmin(); }
+
+    // =========================
+    // پیش‌فرض امن برای بقیه مسیرها
+    // =========================
+    match /{document=**} {
+      allow read, write: if isAdmin();
     }
   }
 }
