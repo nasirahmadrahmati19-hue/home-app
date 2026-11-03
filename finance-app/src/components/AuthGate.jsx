@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Wallet2, LogIn, Loader2, ShieldCheck, AtSign, Send } from 'lucide-react'
 import { registerOrSignIn, resetPassword } from '../utils/auth'
+import PasswordInput from './PasswordInput'
 
 export default function AuthGate({ onAuthed }) {
   const [name, setName] = useState('')
@@ -99,21 +100,13 @@ export default function AuthGate({ onAuthed }) {
 
             <div>
               <label className="t-body mb-1.5 block text-[13px] font-black">رمز عبور</label>
-              <div className="relative">
-                <Send size={16} className="t-faint absolute right-3 top-1/2 -translate-y-1/2" />
-                <input
-                  className="field-input w-full pr-10"
-                  type="password"
-                  dir="ltr"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••"
-                  autoComplete="current-password"
-                  minLength={6}
-                  required
-                />
-              </div>
-              <p className="t-faint mt-1.5 text-[11px] font-bold">حداقل ۶ رقم — اگر رمز را فراموش کردید، از لینک پایین استفاده کنید</p>
+              <PasswordInput
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••"
+                autoComplete="current-password"
+              />
+              <p className="t-faint mt-1.5 text-[11px] font-bold">حداقل ۶ رقم — با آیکون 👁️ می‌توانید رمز را ببینید</p>
             </div>
 
             {error && (
