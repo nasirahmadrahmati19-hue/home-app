@@ -71,7 +71,7 @@ export default function App() {
   // NOT looking at a stale/cached deployment.
   useEffect(() => {
     console.log(
-      '%c[home-app build 2026-11-01-a] Firebase project: newapp-2026 | single one-click auth form',
+      '%c[home-app build 2026-11-03-b] Firebase project: newapp-2026 | email+password auth with password reset',
       'background:#0d9488;color:#fff;padding:4px 8px;border-radius:6px;font-weight:bold',
     )
   }, [])

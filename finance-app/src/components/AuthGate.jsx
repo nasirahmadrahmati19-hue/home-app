@@ -1,44 +1,26 @@
-import { useEffect, useState } from 'react'
-import { Wallet2, Send, Loader2, ShieldCheck, AtSign } from 'lucide-react'
-import { sendLoginLink, completeSignInFromLink } from '../utils/auth'
+import { useState } from 'react'
+import { Wallet2, LogIn, Loader2, ShieldCheck, AtSign, Send } from 'lucide-react'
+import { registerOrSignIn, resetPassword } from '../utils/auth'
 
 export default function AuthGate({ onAuthed }) {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [info, setInfo] = useState('')
   const [busy, setBusy] = useState(false)
-  const [linkBusy, setLinkBusy] = useState(true) // check the URL on first paint
+  const [resetBusy, setResetBusy] = useState(false)
 
-  // If the user arrived by clicking the email sign-in link, finish login.
-  useEffect(() => {
-    let alive = true
-    completeSignInFromLink(name)
-      .then((res) => {
-        if (alive && res && res.user) onAuthed(res.user)
-      })
-      .catch((err) => {
-        if (alive) setError(err.message || 'ورود با لینک ممکن نشد — دوباره تلاش کنید.')
-      })
-      .finally(() => {
-        if (alive) setLinkBusy(false)
-      })
-    return () => {
-      alive = false
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  // ONE form: enter your name + gmail, we email you a sign-in link.
-  // There is NO password field anymore — login is only via Gmail.
+  // ONE form: name + gmail + password. If the account is new we create it,
+  // otherwise we sign in — both handled inside registerOrSignIn().
   const submit = async (e) => {
     e.preventDefault()
     setError('')
     setInfo('')
     setBusy(true)
     try {
-      await sendLoginLink({ name, email })
-      setInfo('✉️ لینک ورود برای شما ایمیل شد — صندوق جیمیل خود را باز کنید و روی «Sign in» کلیک کنید.')
+      const res = await registerOrSignIn({ name, email, password })
+      if (res && res.user) onAuthed(res.user)
     } catch (err) {
       setError(err.message || 'مشکلی پیش آمد — دوباره تلاش کنید.')
     } finally {
@@ -46,12 +28,23 @@ export default function AuthGate({ onAuthed }) {
     }
   }
 
-  if (linkBusy) {
-    return (
-      <div dir="rtl" className="flex min-h-screen items-center justify-center px-4 py-10">
-        <Loader2 size={28} className="animate-spin text-teal-400" />
-      </div>
-    )
+  // "Forgot my password" → sendPasswordResetEmail (not blocked by Gmail).
+  const forgotPassword = async () => {
+    setError('')
+    setInfo('')
+    if (!email.trim()) {
+      setError('ابتدا جیمیل خود را در فیلد بالا وارد کنید، سپس روی «رمز عبورم را فراموش کرده‌ام» بزنید.')
+      return
+    }
+    setResetBusy(true)
+    try {
+      await resetPassword(email)
+      setInfo('✉️ ایمیل بازنشانی رمز عبور برای شما ارسال شد — صندوق جیمیل (و پوشه Spam) را بررسی کنید.')
+    } catch (err) {
+      setError(err.message || 'ارسال ایمیل بازنشانی ممکن نشد — دوباره تلاش کنید.')
+    } finally {
+      setResetBusy(false)
+    }
   }
 
   return (
@@ -63,14 +56,14 @@ export default function AuthGate({ onAuthed }) {
             <Wallet2 size={30} strokeWidth={2.2} />
           </span>
           <h1 className="text-gradient text-2xl font-black tracking-tight">مدیریت مالی شخصی</h1>
-          <p className="t-muted text-[13px] font-bold">ورود فقط با جیمیل — بدون رمز عبور ✉️</p>
+          <p className="t-muted text-[13px] font-bold">با جیمیل خود ثبت‌نام یا وارد شوید 🔒</p>
         </div>
 
         {/* ---------- Card ---------- */}
         <div className="card-raised animate-fade-up px-6 py-7 sm:px-8" style={{ animationDelay: '0.1s' }}>
           <div className="mb-5 flex items-start gap-2 rounded-xl border border-teal-400/30 bg-teal-400/10 px-4 py-3 text-[13px] font-bold text-teal-500">
             <ShieldCheck size={18} className="mt-0.5 shrink-0" />
-            نام و جیمیل خود را وارد کنید؛ یک لینک امن به ایمیل شما می‌فرستیم. با کلیک روی لینک، مستقیم وارد برنامه می‌شوید. رمز عبوری وجود ندارد!
+            یک فرم ساده: اگر بار اول است، حساب شما ساخته و مستقیم وارد می‌شوید؛ اگر قبلاً ثبت‌نام کرده‌اید، با همان جیمیل و رمز وارد شوید.
           </div>
 
           <form onSubmit={submit} className="space-y-4">
@@ -104,6 +97,25 @@ export default function AuthGate({ onAuthed }) {
               <p className="t-faint mt-1.5 text-[11px] font-bold">فقط نشانی‌های @gmail.com پذیرفته می‌شوند</p>
             </div>
 
+            <div>
+              <label className="t-body mb-1.5 block text-[13px] font-black">رمز عبور</label>
+              <div className="relative">
+                <Send size={16} className="t-faint absolute right-3 top-1/2 -translate-y-1/2" />
+                <input
+                  className="field-input w-full pr-10"
+                  type="password"
+                  dir="ltr"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••"
+                  autoComplete="current-password"
+                  minLength={6}
+                  required
+                />
+              </div>
+              <p className="t-faint mt-1.5 text-[11px] font-bold">حداقل ۶ رقم — اگر رمز را فراموش کردید، از لینک پایین استفاده کنید</p>
+            </div>
+
             {error && (
               <div className="rounded-xl border border-rose-400/30 bg-rose-500/10 px-4 py-2.5 text-[13px] font-black text-rose-400 animate-fade-up">
                 {error}
@@ -124,9 +136,19 @@ export default function AuthGate({ onAuthed }) {
                 <Loader2 size={18} className="animate-spin" />
               ) : (
                 <>
-                  <Send size={18} /> ارسال لینک ورود به جیمیل
+                  <LogIn size={18} /> ثبت‌نام / ورود با جیمیل
                 </>
               )}
+            </button>
+
+            <button
+              type="button"
+              onClick={forgotPassword}
+              disabled={resetBusy}
+              className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-slate-500/30 px-4 py-2.5 text-[13px] font-black text-teal-500 transition-all hover:bg-teal-400/10 active:scale-[0.98] disabled:opacity-60"
+            >
+              {resetBusy ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
+              🔑 رمز عبورم را فراموش کرده‌ام
             </button>
           </form>
 

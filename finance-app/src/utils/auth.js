@@ -1,13 +1,14 @@
 // ---------- Firebase Auth — the entry gate of the app ----------
-// Login is passwordless: the user only enters their Gmail address and a
-// magic sign-in link is sent to that inbox via Firebase Email Link
-// (sendSignInLinkToEmail + signInWithEmailLink). There is NO password field
-// and NO localStorage-based sessions: auth state is kept by Firebase itself.
+// Stable email/password authentication (reverted from the passwordless
+// email-link flow because Gmail blocks Firebase sign-in link emails).
+// One form: if the account does not exist yet we create it (sign up),
+// otherwise we sign the user in. A "forgot password" link sends a
+// password-reset email via sendPasswordResetEmail().
 
 import {
-  sendSignInLinkToEmail,
-  isSignInWithEmailLink,
-  signInWithEmailLink,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  sendPasswordResetEmail,
   signOut,
   updateProfile,
   onAuthStateChanged,
@@ -23,23 +24,26 @@ function normalizeEmail(email) {
   return (email || '').trim().toLowerCase()
 }
 
-const EMAIL_KEY = 'authEmailForLink'
-
 // Human-readable Persian messages for Firebase error codes.
 function friendlyError(err) {
   const code = err && (err.code || '')
   switch (code) {
     case 'auth/invalid-email':
       return 'نشانی ایمیل معتبر نیست.'
-    case 'auth/invalid-action-code':
-    case 'auth/expired-action-code':
-      return 'لینک ورود نامعتبر یا منقضی شده است — دوباره درخواست لینک جدید بدهید.'
+    case 'auth/user-not-found':
+    case 'auth/wrong-password':
+    case 'auth/invalid-credential':
+      return 'جیمیل یا رمز عبور اشتباه است. اگر رمز را فراموش کرده‌اید، از لینک «رمز عبورم را فراموش کرده‌ام» استفاده کنید.'
+    case 'auth/email-already-in-use':
+      return 'این جیمیل قبلاً ثبت‌نام کرده است — با همان رمز وارد شوید.'
+    case 'auth/weak-password':
+      return 'رمز عبور باید حداقل ۶ رقم باشد.'
     case 'auth/too-many-requests':
-      return 'چند بار تلاش کردید — کمی صبر کنید و دوباره امتحان کنید.'
+      return 'چند بار پشت‌سرهم تلاش کردید — برای محافظت از حساب، کمی صبر کنید و دوباره امتحان کنید.'
     case 'auth/network-request-failed':
       return 'اتصال اینترنتی برقرار نیست — برای ورود به سرور نیاز به اینترنت دارید.'
     case 'auth/configuration-not-found':
-      return 'ورود با لینک ایمیلی در کنسول Firebase فعال نیست — بخش Authentication → Sign-in method → Email link را روشن کنید.'
+      return 'ورود با ایمیل و رمز در کنسول Firebase فعال نیست — بخش Authentication → Sign-in method → Email/Password را روشن کنید.'
     default:
       if (/network/i.test(err && err.message)) {
         return 'اتصال اینترنتی برقرار نیست — برای ورود به سرور نیاز به اینترنت دارید.'
@@ -69,34 +73,53 @@ async function finalizeUser(user, cleanName, cleanEmail) {
   return { uid: user.uid, name: cleanName || user.displayName || cleanEmail.split('@')[0], email: cleanEmail }
 }
 
-// The action URL settings for the magic sign-in link.
-function emailLinkSettings() {
-  return {
-    url: typeof window !== 'undefined' ? window.location.origin : '',
-    handleCodeInApp: true,
-  }
-}
-
-// ---------- send the magic sign-in link (passwordless) ----------
-export async function sendLoginLink({ name, email }) {
+// ---------- main entry: sign up if new, sign in if exists ----------
+export async function registerOrSignIn({ name, email, password }) {
   const cleanName = (name || '').trim()
   const cleanEmail = normalizeEmail(email)
+  const pass = password || ''
 
   if (!cleanName) throw new Error('نام خود را وارد کنید.')
   if (!isGmail(cleanEmail))
     throw new Error('برای ورود باید نشانی جیمیل (…@gmail.com) داشته باشید.')
+  if (pass.length < 6)
+    throw new Error('رمز عبور باید حداقل ۶ رقم باشد.')
 
   try {
-    await sendSignInLinkToEmail(auth, cleanEmail, emailLinkSettings())
-    // Remember which address the link was requested for, so that when the
-    // user clicks the link (possibly in another tab) we can complete sign-in.
-    try {
-      window.localStorage.setItem(EMAIL_KEY, cleanEmail)
-    } catch {
-      /* storage may be unavailable; sign-in still works if same tab */
+    // Try to create the account first (this is what most visitors need).
+    const cred = await createUserWithEmailAndPassword(auth, cleanEmail, pass)
+    console.log('[auth] ✅ account created:', cleanEmail)
+    return { ok: true, signedIn: true, user: await finalizeUser(cred.user, cleanName, cleanEmail) }
+  } catch (err) {
+    if (err && err.code === 'auth/email-already-in-use') {
+      // Account exists → fall back to plain sign-in with the same password.
+      try {
+        const cred = await signInWithEmailAndPassword(auth, cleanEmail, pass)
+        console.log('[auth] ✅ signed in:', cleanEmail)
+        return { ok: true, signedIn: true, user: await finalizeUser(cred.user, cleanName, cleanEmail) }
+      } catch (err2) {
+        console.error('🔥 FIREBASE AUTH ERROR CODE:', err2 && err2.code)
+        console.error('🔥 FIREBASE AUTH ERROR MESSAGE:', err2 && err2.message)
+        throw new Error(friendlyError(err2))
+      }
     }
-    console.log('[auth] ✉️ sign-in link sent to:', cleanEmail)
-    return { ok: true, sent: true, email: cleanEmail }
+    console.error('🔥 FIREBASE AUTH ERROR CODE:', err && err.code)
+    console.error('🔥 FIREBASE AUTH ERROR MESSAGE:', err && err.message)
+    throw new Error(friendlyError(err))
+  }
+}
+
+// Kept for API compatibility with older call-sites.
+export async function loginUser({ name, email, password }) {
+  const cleanEmail = normalizeEmail(email)
+  const pass = password || ''
+  if (!isGmail(cleanEmail))
+    throw new Error('برای ورود باید نشانی جیمیل (…@gmail.com) داشته باشید.')
+  if (!pass) throw new Error('رمز عبور خود را وارد کنید.')
+  try {
+    const cred = await signInWithEmailAndPassword(auth, cleanEmail, pass)
+    console.log('[auth] ✅ signed in:', cleanEmail)
+    return { ok: true, signedIn: true, user: await finalizeUser(cred.user, (name || '').trim(), cleanEmail) }
   } catch (err) {
     console.error('🔥 FIREBASE AUTH ERROR CODE:', err && err.code)
     console.error('🔥 FIREBASE AUTH ERROR MESSAGE:', err && err.message)
@@ -104,44 +127,23 @@ export async function sendLoginLink({ name, email }) {
   }
 }
 
-// ---------- complete sign-in when the URL contains the email link ----------
-export async function completeSignInFromLink(name) {
-  if (typeof window === 'undefined' || !auth) return null
-  if (!isSignInWithEmailLink(auth, window.location.href)) return null
-
-  let email = ''
-  try {
-    email = window.localStorage.getItem(EMAIL_KEY) || ''
-  } catch {
-    /* ignore */
-  }
-  if (!email) return null // user must re-enter their gmail and request a link
-
-  const cred = await signInWithEmailLink(auth, email, window.location.href)
-  try {
-    window.localStorage.removeItem(EMAIL_KEY)
-  } catch {
-    /* ignore */
-  }
+// ---------- password reset (these emails are NOT blocked by Gmail) ----------
+export async function resetPassword(email) {
   const cleanEmail = normalizeEmail(email)
-  const user = await finalizeUser(cred.user, (name || '').trim(), cleanEmail)
-  // Clean the magic-link query params out of the address bar.
+  if (!isGmail(cleanEmail))
+    throw new Error('ابتدا جیمیل خود را در فیلد بالا وارد کنید.')
   try {
-    window.history.replaceState({}, '', window.location.origin + window.location.pathname)
-  } catch {
-    /* ignore */
+    await sendPasswordResetEmail(auth, cleanEmail)
+    console.log('[auth] ✉️ password-reset email sent to:', cleanEmail)
+    return { ok: true }
+  } catch (err) {
+    console.error('🔥 FIREBASE AUTH ERROR CODE:', err && err.code)
+    console.error('🔥 FIREBASE AUTH ERROR MESSAGE:', err && err.message)
+    if (err && err.code === 'auth/user-not-found') {
+      throw new Error('حسابی با این جیمیل پیدا نشد — ابتدا ثبت‌نام کنید.')
+    }
+    throw new Error(friendlyError(err))
   }
-  console.log('[auth] ✅ signed in via email link:', cleanEmail)
-  return { ok: true, user }
-}
-
-// Kept for API compatibility with older call-sites (no password anymore).
-export async function registerOrSignIn({ name, email }) {
-  return sendLoginLink({ name, email })
-}
-
-export async function loginUser({ name, email }) {
-  return sendLoginLink({ name, email })
 }
 
 // ---------- logout ----------
